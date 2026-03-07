@@ -1,8 +1,9 @@
 //// Gleam Meilisearch client
 ////
 
-import diogenes/http_tooling.{create_base_req}
+import diogenes/http_tooling.{create_base_request}
 import diogenes/types.{type Client, Client}
+import gleam/http
 import gleam/http/request.{type Request}
 import gleam/http/response.{type Response}
 import gleam/option.{type Option}
@@ -27,12 +28,12 @@ pub fn health(
   client: Client,
 ) -> #(Request(String), fn(Response(String)) -> Result(Nil, Nil)) {
   let req =
-    create_base_req(client, "/health")
+    create_base_request(client, "/health")
     |> request.set_body("")
+    |> request.set_method(http.Get)
   #(req, fn(response: Response(String)) {
     case response.status {
-      _ if response.status < 200 -> Ok(Nil)
-      _ if response.status < 300 -> Ok(Nil)
+      200 -> Ok(Nil)
       _ -> Error(Nil)
     }
   })

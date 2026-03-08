@@ -1,5 +1,6 @@
 import diogenes.{type Client, type Error, type MeilisearchResponse}
 import diogenes/sansio/document as sansio_document
+import gleam/dynamic/decode
 import gleam/json
 import internals/http_tooling.{send_request}
 
@@ -13,7 +14,7 @@ pub fn add_or_replace_documents(
   index_uid: String,
   documents: List(document_type),
   encoder: fn(document_type) -> json.Json,
-) -> Result(MeilisearchResponse, Error) {
+) -> Result(MeilisearchResponse(document_type), Error) {
   let #(request, parser) =
     sansio_document.add_or_replace_documents(
       client,
@@ -21,5 +22,28 @@ pub fn add_or_replace_documents(
       documents,
       encoder,
     )
-  send_request(request, [], parser)
+  send_request(request, [401, 404], parser)
+}
+
+/// Retrieves all documents with pagination
+///
+/// https://www.meilisearch.com/docs/reference/api/documents/list-documents-with-get
+pub fn list_documents_with_get(
+  client: Client,
+  index_uid: String,
+  parameters: sansio_document.ListDocumentsParams,
+  decoder: decode.Decoder(document_type),
+) -> Result(MeilisearchResponse(document_type), Error) {
+  let #(request, parser) =
+    sansio_document.list_documents_with_get(
+      client,
+      index_uid,
+      parameters,
+      decoder,
+    )
+  send_request(request, [401, 404], parser)
+}
+
+pub fn default_list_documents_params() -> sansio_document.ListDocumentsParams {
+  sansio_document.ListDocumentsParams(0, 20, [], False, [], "", "")
 }

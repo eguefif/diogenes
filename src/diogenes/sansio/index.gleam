@@ -2,7 +2,6 @@ import diogenes.{
   type Client, type Error, type MeilisearchResponse, JsonError,
   meilisearch_error_from_json, task_from_json,
 }
-import gleam/dynamic/decode
 import gleam/http
 import gleam/http/request.{type Request}
 import gleam/json
@@ -23,7 +22,10 @@ pub fn create_index(
   client: Client,
   uid: String,
   primary_key: Option(String),
-) -> #(Request(String), fn(Int, String) -> Result(MeilisearchResponse, Error)) {
+) -> #(
+  Request(String),
+  fn(Int, String) -> Result(MeilisearchResponse(a), Error),
+) {
   let body =
     json.to_string(index_creation_to_json(IndexCreation(uid:, primary_key:)))
 
@@ -39,12 +41,7 @@ pub fn create_index(
           Ok(task) -> Ok(task)
           Error(err) -> Error(JsonError(err))
         }
-      401 -> {
-        case meilisearch_error_from_json(body) {
-          Ok(error) -> Error(error)
-          Error(err) -> Error(JsonError(err))
-        }
-      }
+      401 -> Error(meilisearch_error_from_json(body))
       _ -> panic
     }
   }
@@ -60,17 +57,16 @@ fn index_creation_to_json(idx: Index) -> json.Json {
     }),
   ])
 }
-
-fn index_creation_from_json(
-  json_string: String,
-) -> Result(Index, json.DecodeError) {
-  let decoder = {
-    use uid <- decode.field("uid", decode.string)
-    use primary_key <- decode.field(
-      "primaryKey",
-      decode.optional(decode.string),
-    )
-    decode.success(IndexCreation(uid:, primary_key:))
-  }
-  json.parse(from: json_string, using: decoder)
-}
+//fn index_creation_from_json(
+//  json_string: String,
+//) -> Result(Index, json.DecodeError) {
+//  let decoder = {
+//    use uid <- decode.field("uid", decode.string)
+//    use primary_key <- decode.field(
+//      "primaryKey",
+//      decode.optional(decode.string),
+//    )
+//    decode.success(IndexCreation(uid:, primary_key:))
+//  }
+//  json.parse(from: json_string, using: decoder)
+//}

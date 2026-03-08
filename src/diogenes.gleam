@@ -13,8 +13,10 @@
 
 import gleam/dynamic/decode
 import gleam/httpc
+import gleam/io
 import gleam/json
 import gleam/option.{type Option}
+import gleam/result
 import gleam/uri
 
 /// Returns a client to be used anytime we build request.
@@ -41,7 +43,7 @@ pub type Error {
   JsonError(json.DecodeError)
 }
 
-pub type MeilisearchResponse {
+pub type MeilisearchResponse(result_type) {
   Task(
     task_uid: Int,
     index_uid: String,
@@ -50,12 +52,31 @@ pub type MeilisearchResponse {
     enqueued_at: String,
     custom_metadata: Option(String),
   )
+  MeilisearchResults(
+    results: List(result_type),
+    limit: Int,
+    offset: Int,
+    total: Int,
+  )
   Empty
 }
 
-pub fn meilisearch_error_from_json(
-  error_string: String,
-) -> Result(Error, json.DecodeError) {
+pub fn meilisearch_results_from_json(
+  results_string: String,
+  item_decoder: decode.Decoder(result_type),
+) -> Result(MeilisearchResponse(result_type), Error) {
+  let decoder = {
+    use results <- decode.field("results", decode.list(item_decoder))
+    use limit <- decode.field("limit", decode.int)
+    use offset <- decode.field("offset", decode.int)
+    use total <- decode.field("total", decode.int)
+    decode.success(MeilisearchResults(results:, limit:, offset:, total:))
+  }
+  json.parse(results_string, decoder)
+  |> result.map_error(fn(error) { JsonError(error) })
+}
+
+pub fn meilisearch_error_from_json(error_string: String) -> Error {
   let decoder = {
     use message <- decode.field("message", decode.string)
     use code <- decode.field("code", decode.string)
@@ -64,7 +85,10 @@ pub fn meilisearch_error_from_json(
 
     decode.success(MeilisearchError(message:, code:, type_:, link:))
   }
-  json.parse(error_string, decoder)
+  case json.parse(error_string, decoder) {
+    Ok(error) -> error
+    Error(error) -> JsonError(error)
+  }
 }
 
 pub type TaskStatus {
@@ -94,7 +118,7 @@ pub type TaskType {
   NetworkTopologyChange
 }
 
-pub fn task_to_json(task: MeilisearchResponse) -> json.Json {
+pub fn task_to_json(task: MeilisearchResponse(a)) -> json.Json {
   let assert Task(..) = task
   let object_task = [
     #("taskUid", json.int(task.task_uid)),
@@ -112,7 +136,7 @@ pub fn task_to_json(task: MeilisearchResponse) -> json.Json {
 
 pub fn task_from_json(
   task_string: String,
-) -> Result(MeilisearchResponse, json.DecodeError) {
+) -> Result(MeilisearchResponse(a), json.DecodeError) {
   let decoder = {
     use task_uid <- decode.field("taskUid", decode.int)
     use index_uid <- decode.field("indexUid", decode.string)

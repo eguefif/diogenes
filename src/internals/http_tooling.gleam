@@ -30,8 +30,8 @@ fn set_auth(req: Request(String), api_key: Option(String)) -> Request(String) {
 pub fn send_request(
   request: Request(String),
   api_error_status_codes: List(Int),
-  parser: fn(Int, String) -> Result(MeilisearchResponse, Error),
-) -> Result(MeilisearchResponse, Error) {
+  parser: fn(Int, String) -> Result(MeilisearchResponse(a), Error),
+) -> Result(MeilisearchResponse(a), Error) {
   case httpc.send(request) {
     Ok(response) -> {
       use body <- expect_success(response, api_error_status_codes)

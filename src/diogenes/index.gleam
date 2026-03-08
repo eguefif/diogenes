@@ -13,7 +13,7 @@ pub fn create_index(
   client: Client,
   uid: String,
   primary_key: Option(String),
-) -> Result(MeilisearchResponse, Error) {
+) -> Result(MeilisearchResponse(a), Error) {
   let #(request, parser) = sansio_index.create_index(client, uid, primary_key)
   send_request(request, [401], parser)
 }

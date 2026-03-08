@@ -69,10 +69,10 @@ Further documentation can be found at <https://hexdocs.pm/diogenes>.
         should mention where to find the error type?
 
 ### 1. System
-- [ ] Health check
+- [x] Health check
 
 ### 2. Indexes
-- [ ] Create index
+- [x] Create index
 - [ ] Get index
 - [ ] Delete index
 
@@ -86,7 +86,7 @@ Further documentation can be found at <https://hexdocs.pm/diogenes>.
 - [ ] Get task by id
 
 ### 5. Documents
-- [ ] Add or replace documents
+- [x] Add or replace documents
 - [ ] Delete all documents
 - [ ] Delete document by id
 

@@ -7,7 +7,10 @@ import internals/http_tooling.{create_base_request}
 /// https://www.meilisearch.com/docs/reference/api/health/get-health
 pub fn get_health(
   client: Client,
-) -> #(Request(String), fn(Int, String) -> Result(MeilisearchResponse, Error)) {
+) -> #(
+  Request(String),
+  fn(Int, String) -> Result(MeilisearchResponse(a), Error),
+) {
   let req =
     create_base_request(client, "/health")
     |> request.set_body("")

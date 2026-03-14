@@ -17,3 +17,14 @@ pub fn create_index(
   let #(request, parser) = sansio_index.create_index(client, uid, primary_key)
   send_request(request, [401], parser)
 }
+
+// TODO: get indexes list
+
+pub fn list_index(
+  client: Client,
+  offset: Option(Int),
+  limit: Option(Int),
+) -> Result(MeilisearchResponse(sansio_index.Index), Error) {
+  let #(request, parser) = sansio_index.list_index(client, offset, limit)
+  send_request(request, [401], parser)
+}

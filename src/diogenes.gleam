@@ -13,7 +13,6 @@
 
 import gleam/dynamic/decode
 import gleam/httpc
-import gleam/io
 import gleam/json
 import gleam/option.{type Option}
 import gleam/result
@@ -41,6 +40,7 @@ pub type Error {
   ResponseError(status: Int, body: String)
   MeilisearchError(message: String, code: String, type_: String, link: String)
   JsonError(json.DecodeError)
+  UnexpectedHttpStatusCodeError
 }
 
 pub type MeilisearchResponse(result_type) {

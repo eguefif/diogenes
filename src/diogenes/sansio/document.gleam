@@ -1,13 +1,13 @@
 import diogenes.{
   type Client, type Error, type MeilisearchResponse, JsonError,
-  meilisearch_error_from_json, meilisearch_results_from_json, task_from_json,
+  UnexpectedHttpStatusCodeError, meilisearch_error_from_json,
+  meilisearch_results_from_json, task_from_json,
 }
 import gleam/dynamic/decode
 import gleam/http
 import gleam/http/request.{type Request}
 import gleam/int
 import gleam/json
-import gleam/option.{type Option, None, Some}
 import gleam/string
 import internals/http_tooling.{create_base_request}
 
@@ -38,7 +38,7 @@ pub fn add_or_replace_documents(
         }
       }
       401 | 404 -> Error(meilisearch_error_from_json(body))
-      _ -> panic
+      _ -> Error(UnexpectedHttpStatusCodeError)
     }
   })
 }
@@ -64,7 +64,7 @@ pub fn list_documents_with_get(
     case status {
       200 -> meilisearch_results_from_json(body, decoder)
       401 | 404 -> Error(meilisearch_error_from_json(body))
-      _ -> panic
+      _ -> Error(UnexpectedHttpStatusCodeError)
     }
   })
 }
@@ -112,7 +112,7 @@ fn build_documents_query_params(
   }
 }
 
-/// Query paramters for list documents request
+/// Query parameters for list documents request
 ///
 /// If you want to retrieve all the fields, use an empty []
 pub type ListDocumentsParams {

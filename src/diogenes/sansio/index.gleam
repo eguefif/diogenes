@@ -68,6 +68,37 @@ fn index_creation_to_json(idx: Index) -> json.Json {
   ])
 }
 
+/// Deletes a Meilisearch index and all its documents
+///
+/// - uid: unique index identifier
+///
+/// https://www.meilisearch.com/docs/reference/api/indexes/delete-index
+pub fn delete_index(
+  client: Client,
+  uid: String,
+) -> #(
+  Request(String),
+  fn(Int, String) -> Result(MeilisearchResponse(a), Error),
+) {
+  let request =
+    create_base_request(client, "/indexes/" <> uid)
+    |> request.set_method(http.Delete)
+
+  let parser = fn(status: Int, body: String) {
+    case status {
+      202 ->
+        case task_from_json(body) {
+          Ok(task) -> Ok(task)
+          Error(err) -> Error(JsonError(err))
+        }
+      401 -> Error(meilisearch_error_from_json(body))
+      404 -> Error(meilisearch_error_from_json(body))
+      _ -> Error(UnexpectedHttpStatusCodeError)
+    }
+  }
+  #(request, parser)
+}
+
 //fn index_creation_from_json(
 //  json_string: String,
 //) -> Result(Index, json.DecodeError) {
@@ -82,6 +113,12 @@ fn index_creation_to_json(idx: Index) -> json.Json {
 //  json.parse(from: json_string, using: decoder)
 //}
 
+/// Lists all Meilisearch indexes with pagination
+///
+/// - offset: number of indexes to skip (defaults to 0)
+/// - limit: maximum number of indexes to return (defaults to 20)
+///
+/// https://www.meilisearch.com/docs/reference/api/indexes/list-all-indexes
 pub fn list_index(
   client: Client,
   offset: Option(Int),

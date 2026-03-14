@@ -18,13 +18,19 @@ pub fn create_index(
   send_request(request, [401], parser)
 }
 
-// TODO: get indexes list
-
 pub fn list_index(
   client: Client,
   offset: Option(Int),
   limit: Option(Int),
 ) -> Result(MeilisearchResponse(sansio_index.Index), Error) {
   let #(request, parser) = sansio_index.list_index(client, offset, limit)
+  send_request(request, [401], parser)
+}
+
+pub fn delete_index(
+  client: Client,
+  uid: String,
+) -> Result(MeilisearchResponse(sansio_index.Index), Error) {
+  let #(request, parser) = sansio_index.delete_index(client, uid)
   send_request(request, [401], parser)
 }

@@ -61,6 +61,7 @@ pub type MeilisearchResponse(result_type) {
   Empty
 }
 
+@internal
 pub fn meilisearch_results_from_json(
   results_string: String,
   item_decoder: decode.Decoder(result_type),
@@ -76,6 +77,7 @@ pub fn meilisearch_results_from_json(
   |> result.map_error(fn(error) { JsonError(error) })
 }
 
+@internal
 pub fn meilisearch_error_from_json(error_string: String) -> Error {
   let decoder = {
     use message <- decode.field("message", decode.string)
@@ -118,6 +120,7 @@ pub type TaskType {
   NetworkTopologyChange
 }
 
+@internal
 pub fn task_to_json(task: MeilisearchResponse(a)) -> json.Json {
   let assert Task(..) = task
   let object_task = [
@@ -137,6 +140,7 @@ pub fn task_to_json(task: MeilisearchResponse(a)) -> json.Json {
   }
 }
 
+@internal
 pub fn task_from_json(
   task_string: String,
 ) -> Result(MeilisearchResponse(a), json.DecodeError) {
@@ -228,6 +232,7 @@ fn task_type_to_json(type_: TaskType) -> json.Json {
   }
 }
 
+@internal
 pub fn task_status_to_json(status: TaskStatus) -> json.Json {
   case status {
     Enqueued -> json.string("enqueued")

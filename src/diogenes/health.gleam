@@ -1,6 +1,6 @@
 import diogenes.{type Client, type Error, type MeilisearchResponse}
 import diogenes/sansio/health as sansio_health
-import internals/http_tooling.{send_request}
+import internal/http_tooling.{send_request}
 
 /// Check if Meilisearch is up and running
 ///

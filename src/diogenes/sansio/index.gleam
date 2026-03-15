@@ -9,7 +9,7 @@ import gleam/http/request.{type Request}
 import gleam/int
 import gleam/json
 import gleam/option.{type Option}
-import internals/http_tooling.{create_base_request}
+import internal/http_tooling.{create_base_request}
 
 pub type Index {
   IndexCreation(uid: String, primary_key: Option(String))

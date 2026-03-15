@@ -1,7 +1,7 @@
 import diogenes.{type Client, type Error, type MeilisearchResponse}
 import diogenes/sansio/index as sansio_index
 import gleam/option.{type Option}
-import internals/http_tooling.{send_request}
+import internal/http_tooling.{send_request}
 
 // TODO:
 // - [x] get index

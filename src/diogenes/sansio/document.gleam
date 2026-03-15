@@ -10,7 +10,7 @@ import gleam/int
 import gleam/json
 import gleam/option
 import gleam/string
-import internals/http_tooling.{create_base_request}
+import internal/http_tooling.{create_base_request}
 
 /// Adds a list of documents to an index, replacing any existing documents with the same primary key
 ///
@@ -180,8 +180,6 @@ fn build_documents_query_params(
 }
 
 /// Query parameters for list documents request
-///
-/// If you want to retrieve all the fields, use an empty []
 pub type ListDocumentsParams {
   ListDocumentsParams(
     offset: Int,
@@ -194,6 +192,9 @@ pub type ListDocumentsParams {
   )
 }
 
+/// Provides types for list_document_with_XXX functions
+///
+/// Fields are equivalent to dict keys, or SQL columns in Meilisearch's document.
 pub type FieldsParam {
   None
   All
@@ -307,6 +308,7 @@ pub fn get_document(
   #(request, parser)
 }
 
+/// Query parameters for the get_document function
 pub type GetDocumentParams {
   GetDocumentParams(fields: FieldsParam, retrieve_vectors: Bool)
 }

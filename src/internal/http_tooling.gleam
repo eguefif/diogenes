@@ -1,4 +1,4 @@
-//// Provides internals http tooling functions
+//// Provides internal http tooling functions
 ////
 
 import diogenes.{

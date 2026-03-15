@@ -3,7 +3,7 @@ import diogenes/sansio/document as sansio_document
 import gleam/dynamic/decode
 import gleam/json
 import gleam/option
-import internals/http_tooling.{send_request}
+import internal/http_tooling.{send_request}
 
 // TODO: 
 // - [x] list document with get
@@ -18,6 +18,7 @@ import internals/http_tooling.{send_request}
 // - [ ] delete documents by filter
 // - [ ] delete documents by batch
 // - [ ] edit documents by function - Todo later
+// - [ ] Be sure to be coherent with query param types: there should be in sansio or io
 
 /// Retrieves a single document from an index using its primary key
 ///
@@ -118,11 +119,29 @@ pub fn list_documents_with_post(
   send_request(request, [401, 404], parser)
 }
 
+/// Provides default params for list_documents function
+///
+/// Example:
+/// ```
+///
+/// let default = default_list_document_params()
+/// io.println(string.inspect(default))
+///
+/// $> ListDocumentParams( offset: 0, 
+///                        limit: 20, 
+///                        fields: All, 
+///                        retrieve_vectors: False, 
+///                        filter, 
+///                        option, 
+///                        None, 
+///                        sort, 
+///                        [])
+/// ```
 pub fn default_list_documents_params() -> sansio_document.ListDocumentsParams {
   sansio_document.ListDocumentsParams(
     0,
     20,
-    sansio_document.None,
+    sansio_document.All,
     False,
     option.None,
     "",

@@ -4,7 +4,7 @@ import diogenes.{
 }
 import gleam/http
 import gleam/http/request.{type Request}
-import internals/http_tooling.{create_base_request}
+import internal/http_tooling.{create_base_request}
 
 /// Check if the Meilisearch server is up and running
 /// [Meilisearch documentation](https://www.meilisearch.com/docs/reference/api/health/get-health)

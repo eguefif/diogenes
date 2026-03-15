@@ -1,6 +1,6 @@
 # Diogenes
 
-> "Diogenes (philosophical/legendary) — famously wandered with a lantern in daylight searching for an honest man" 
+> "Diogenes  — famously wandered with a lantern in daylight searching for an honest man." 
 >
 > -- Claude --
 

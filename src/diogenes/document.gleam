@@ -4,6 +4,16 @@ import gleam/dynamic/decode
 import gleam/json
 import internals/http_tooling.{send_request}
 
+// TODO: 
+// - [ ] get document
+// - [ ] list document with post
+// - [ ] add or update documents
+// - [ ] delete document
+// - [ ] delete all documents
+// - [ ] delete documents by filter
+// - [ ] delete documents by batch
+// - [ ] edit documents by function
+
 /// This take a list of documents which are of the type you want.
 ///
 /// The encoder will allow the diogenes to encode into json.

@@ -3,6 +3,12 @@ import diogenes/sansio/index as sansio_index
 import gleam/option.{type Option}
 import internals/http_tooling.{send_request}
 
+// TODO:
+// - [x] get index
+// - [ ] update index
+// - [ ] swap index
+// - [ ] list index fields
+
 /// Creates a Meilisearch index
 ///
 /// - uid: unique index identifier
@@ -18,6 +24,12 @@ pub fn create_index(
   send_request(request, [401], parser)
 }
 
+/// Lists all Meilisearch indexes with pagination
+///
+/// - offset: number of indexes to skip (defaults to 0)
+/// - limit: maximum number of indexes to return (defaults to 20)
+///
+/// https://www.meilisearch.com/docs/reference/api/indexes/list-all-indexes
 pub fn list_index(
   client: Client,
   offset: Option(Int),
@@ -27,10 +39,31 @@ pub fn list_index(
   send_request(request, [401], parser)
 }
 
+/// Deletes a Meilisearch index and all its documents, settings and tasks history
+///
+/// - uid: unique index identifier
+///
+/// https://www.meilisearch.com/docs/reference/api/indexes/delete-index
 pub fn delete_index(
   client: Client,
   uid: String,
-) -> Result(MeilisearchResponse(sansio_index.Index), Error) {
+) -> Result(MeilisearchResponse(task), Error) {
   let #(request, parser) = sansio_index.delete_index(client, uid)
   send_request(request, [401], parser)
+}
+
+/// Retrieves the metadata of a single index
+///
+/// - uid: unique index identifier
+///
+/// Returns the index uid, primary key, and creation/update timestamps.
+/// Returns a 404 error if the index does not exist.
+///
+/// https://www.meilisearch.com/docs/reference/api/indexes/get-index
+pub fn get_index(
+  client: Client,
+  uid: String,
+) -> Result(MeilisearchResponse(sansio_index.Index), Error) {
+  let #(request, parser) = sansio_index.get_index(client, uid)
+  send_request(request, [401, 404], parser)
 }

@@ -38,7 +38,7 @@ pub fn add_or_replace_documents(
         }
       }
       401 | 404 -> Error(meilisearch_error_from_json(body))
-      _ -> Error(UnexpectedHttpStatusCodeError)
+      _ -> Error(UnexpectedHttpStatusCodeError(status, body))
     }
   })
 }
@@ -64,7 +64,7 @@ pub fn list_documents_with_get(
     case status {
       200 -> meilisearch_results_from_json(body, decoder)
       401 | 404 -> Error(meilisearch_error_from_json(body))
-      _ -> Error(UnexpectedHttpStatusCodeError)
+      _ -> Error(UnexpectedHttpStatusCodeError(status, body))
     }
   })
 }

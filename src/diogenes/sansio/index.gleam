@@ -1,7 +1,7 @@
 import diogenes.{
   type Client, type Error, type MeilisearchResponse, JsonError,
-  UnexpectedHttpStatusCodeError, meilisearch_error_from_json,
-  meilisearch_results_from_json, task_from_json,
+  MeilisearchSingleResult, UnexpectedHttpStatusCodeError,
+  meilisearch_error_from_json, meilisearch_results_from_json, task_from_json,
 }
 import gleam/dynamic/decode
 import gleam/http
@@ -51,7 +51,7 @@ pub fn create_index(
           Error(err) -> Error(JsonError(err))
         }
       401 -> Error(meilisearch_error_from_json(body))
-      _ -> Error(UnexpectedHttpStatusCodeError)
+      _ -> Error(UnexpectedHttpStatusCodeError(status, body))
     }
   }
   #(request, parser)
@@ -66,6 +66,39 @@ fn index_creation_to_json(idx: Index) -> json.Json {
       option.None -> json.null()
     }),
   ])
+}
+
+/// Retrieves the metadata of a single index
+///
+/// - uid: unique index identifier
+///
+/// Returns the index uid, primary key, and creation/update timestamps.
+/// Returns a 404 error if the index does not exist.
+///
+/// https://www.meilisearch.com/docs/reference/api/indexes/get-index
+pub fn get_index(
+  client: Client,
+  uid: String,
+) -> #(
+  Request(String),
+  fn(Int, String) -> Result(MeilisearchResponse(Index), Error),
+) {
+  let request =
+    create_base_request(client, "/indexes/" <> uid)
+    |> request.set_method(http.Get)
+
+  let parser = fn(status: Int, body: String) {
+    case status {
+      200 ->
+        case json.parse(body, index_decoder()) {
+          Ok(index) -> Ok(MeilisearchSingleResult(result: index))
+          Error(error) -> Error(JsonError(error))
+        }
+      401 | 404 -> Error(meilisearch_error_from_json(body))
+      _ -> Error(UnexpectedHttpStatusCodeError(status, body))
+    }
+  }
+  #(request, parser)
 }
 
 /// Deletes a Meilisearch index and all its documents
@@ -93,7 +126,7 @@ pub fn delete_index(
         }
       401 -> Error(meilisearch_error_from_json(body))
       404 -> Error(meilisearch_error_from_json(body))
-      _ -> Error(UnexpectedHttpStatusCodeError)
+      _ -> Error(UnexpectedHttpStatusCodeError(status, body))
     }
   }
   #(request, parser)
@@ -143,7 +176,7 @@ pub fn list_index(
           Error(error) -> Error(error)
         }
       401 -> Error(meilisearch_error_from_json(body))
-      _ -> Error(UnexpectedHttpStatusCodeError)
+      _ -> Error(UnexpectedHttpStatusCodeError(status, body))
     }
   }
   #(request, parser)
@@ -152,16 +185,14 @@ pub fn list_index(
 fn list_index_from_json(
   body: String,
 ) -> Result(MeilisearchResponse(Index), Error) {
-  let index_decoder = {
-    use uid <- decode.field("uid", decode.string)
-    use primary_key <- decode.field(
-      "primaryKey",
-      decode.optional(decode.string),
-    )
-    use created_at <- decode.field("createdAt", decode.string)
-    use updated_at <- decode.field("updatedAt", decode.string)
+  meilisearch_results_from_json(body, index_decoder())
+}
 
-    decode.success(Index(uid:, primary_key:, created_at:, updated_at:))
-  }
-  meilisearch_results_from_json(body, index_decoder)
+fn index_decoder() -> decode.Decoder(Index) {
+  use uid <- decode.field("uid", decode.string)
+  use primary_key <- decode.field("primaryKey", decode.optional(decode.string))
+  use created_at <- decode.field("createdAt", decode.string)
+  use updated_at <- decode.field("updatedAt", decode.string)
+
+  decode.success(Index(uid:, primary_key:, created_at:, updated_at:))
 }

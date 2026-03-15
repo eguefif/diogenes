@@ -40,7 +40,7 @@ pub type Error {
   ResponseError(status: Int, body: String)
   MeilisearchError(message: String, code: String, type_: String, link: String)
   JsonError(json.DecodeError)
-  UnexpectedHttpStatusCodeError
+  UnexpectedHttpStatusCodeError(status: Int, body: String)
 }
 
 pub type MeilisearchResponse(result_type) {
@@ -58,6 +58,7 @@ pub type MeilisearchResponse(result_type) {
     offset: Int,
     total: Int,
   )
+  MeilisearchSingleResult(result: result_type)
   Empty
 }
 

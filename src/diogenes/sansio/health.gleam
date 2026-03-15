@@ -1,4 +1,7 @@
-import diogenes.{type Client, type Error, type MeilisearchResponse, Empty}
+import diogenes.{
+  type Client, type Error, type MeilisearchResponse, Empty,
+  UnexpectedHttpStatusCodeError,
+}
 import gleam/http
 import gleam/http/request.{type Request}
 import internals/http_tooling.{create_base_request}
@@ -15,10 +18,10 @@ pub fn get_health(
     create_base_request(client, "/health")
     |> request.set_body("")
     |> request.set_method(http.Get)
-  #(req, fn(status: Int, _: String) {
+  #(req, fn(status: Int, body: String) {
     case status {
       200 -> Ok(Empty)
-      _ -> panic
+      _ -> Error(UnexpectedHttpStatusCodeError(status, body))
     }
   })
 }

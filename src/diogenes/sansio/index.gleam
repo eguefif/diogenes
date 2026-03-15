@@ -15,12 +15,77 @@ pub type Index {
   IndexCreation(uid: String, primary_key: Option(String))
   IndexUpdate(uid: String, new_uid: Option(String), primary_key: Option(String))
   IndexPairSwap(index_a: String, index_b: String, rename: Bool)
+  IndexFields(List(IndexField))
+  IndexListFieldsRequest(offset: Int, limit: Int, filter: IndexListFilters)
   Index(
     uid: String,
     primary_key: Option(String),
     created_at: String,
     updated_at: String,
   )
+}
+
+pub type IndexListFilters {
+  IndexListFilters(
+    attribute_patterns: List(String),
+    displayed: Bool,
+    searchable: Bool,
+    sortable: Bool,
+    distinct: Bool,
+    filterable: Bool,
+  )
+}
+
+pub type AttributePatterns {
+  AttributePatterns(patterns: List(String))
+}
+
+pub type IndexField {
+
+  IndexField(
+    name: String,
+    displayed: Displayed,
+    searchable: Searchable,
+    sortable: Sortable,
+    distinct: Distinct,
+    ranking_rule: RankingRule,
+    filterable: Filterable,
+    localized: Localized,
+  )
+}
+
+pub type Displayed {
+  Displayed(enabled: Bool)
+}
+
+pub type Searchable {
+  Searchable(enabled: Bool)
+}
+
+pub type Sortable {
+  Sortable(enabled: Bool)
+}
+
+pub type Distinct {
+  Distinct(enabled: Bool)
+}
+
+pub type RankingRule {
+  RankingRule(enabled: Bool, order: List(String))
+}
+
+pub type Filterable {
+  Filterable(
+    enabled: Bool,
+    sort_by: String,
+    facet_search: Bool,
+    equality: Bool,
+    comparison: Bool,
+  )
+}
+
+pub type Localized {
+  Localized(locales: List(String))
 }
 
 /// Creates a Meilisearch index
@@ -296,4 +361,153 @@ fn index_pair_swap_to_json(pairs: Index) -> json.Json {
     #("indexes", json.array([pairs.index_a, pairs.index_b], json.string)),
     #("rename", json.bool(pairs.rename)),
   ])
+}
+
+/// Retrieves a paginated list of fields within an index, along with metadata about each field's configuration
+///
+/// - uid: unique identifier of the target index
+/// - filters: filter criteria such as offset, limit, and attribute filters (displayed, searchable, sortable, filterable, etc.)
+///
+/// https://www.meilisearch.com/docs/reference/api/indexes/list-index-fields
+pub fn list_index_fields(
+  client: Client,
+  uid: String,
+  filters: Index,
+) -> #(
+  Request(String),
+  fn(Int, String) -> Result(MeilisearchResponse(IndexField), Error),
+) {
+  let request =
+    create_base_request(client, "/indexes/" <> uid <> "/fields")
+    |> request.set_method(http.Post)
+    |> request.set_body(list_index_request_to_json(filters))
+
+  let decoder = fn(status: Int, body: String) {
+    case status {
+      200 -> meilisearch_results_from_json(body, index_field_from_json())
+      401 | 404 -> Error(meilisearch_error_from_json(body))
+      _ -> Error(UnexpectedHttpStatusCodeError(status, body))
+    }
+  }
+  #(request, decoder)
+}
+
+fn list_index_request_to_json(request: Index) -> String {
+  let assert IndexListFieldsRequest(..) = request
+  let request_object =
+    json.object([
+      #("filter", filters_to_json(request.filter)),
+      #("offset", json.int(request.offset)),
+      #("limit", json.int(request.limit)),
+    ])
+
+  json.to_string(request_object)
+}
+
+fn filters_to_json(filters: IndexListFilters) -> json.Json {
+  json.object([
+    #(
+      "attributePatterns",
+      attribute_patterns_to_json(filters.attribute_patterns),
+    ),
+    #("displayed", case filters.displayed {
+      True -> json.bool(True)
+      False -> json.null()
+    }),
+    #("searchable", case filters.searchable {
+      True -> json.bool(True)
+      False -> json.null()
+    }),
+    #("sortable", case filters.sortable {
+      True -> json.bool(True)
+      False -> json.null()
+    }),
+    #("distinct", case filters.distinct {
+      True -> json.bool(True)
+      False -> json.null()
+    }),
+    #("rankingRule", case filters.distinct {
+      True -> json.bool(True)
+      False -> json.null()
+    }),
+    #("filterable", case filters.distinct {
+      True -> json.bool(True)
+      False -> json.null()
+    }),
+  ])
+}
+
+//fn attribute_patterns_to_json(patterns: AttributePatterns) -> json.Json {
+fn attribute_patterns_to_json(patterns: List(String)) -> json.Json {
+  //json.object([#("patterns", json.array(patterns.patterns, json.string))])
+  json.array(patterns, json.string)
+}
+
+fn index_field_from_json() -> decode.Decoder(IndexField) {
+  use name <- decode.field("name", decode.string)
+  use displayed <- decode.field("displayed", decode_displayed())
+  use searchable <- decode.field("searchable", decode_searchable())
+  use sortable <- decode.field("sortable", decode_sortable())
+  use distinct <- decode.field("distinct", decode_distinct())
+  use ranking_rule <- decode.field("rankingRule", decode_ranking_rule())
+  use filterable <- decode.field("filterable", decode_filterable())
+  use localized <- decode.field("localized", decode_localized())
+
+  decode.success(IndexField(
+    name:,
+    displayed:,
+    searchable:,
+    sortable:,
+    distinct:,
+    ranking_rule:,
+    filterable:,
+    localized:,
+  ))
+}
+
+fn decode_localized() -> decode.Decoder(Localized) {
+  use locales <- decode.field("locales", decode.list(decode.string))
+  decode.success(Localized(locales:))
+}
+
+fn decode_filterable() -> decode.Decoder(Filterable) {
+  use enabled <- decode.field("enabled", decode.bool)
+  use sort_by <- decode.field("sortBy", decode.string)
+  use facet_search <- decode.field("facetSearch", decode.bool)
+  use equality <- decode.field("equality", decode.bool)
+  use comparison <- decode.field("comparison", decode.bool)
+
+  decode.success(Filterable(
+    enabled:,
+    sort_by:,
+    facet_search:,
+    equality:,
+    comparison:,
+  ))
+}
+
+fn decode_ranking_rule() -> decode.Decoder(RankingRule) {
+  use enabled <- decode.field("enabled", decode.bool)
+  use order <- decode.field("order", decode.list(decode.string))
+  decode.success(RankingRule(enabled:, order:))
+}
+
+fn decode_displayed() -> decode.Decoder(Displayed) {
+  use enabled <- decode.field("enabled", decode.bool)
+  decode.success(Displayed(enabled:))
+}
+
+fn decode_searchable() -> decode.Decoder(Searchable) {
+  use enabled <- decode.field("enabled", decode.bool)
+  decode.success(Searchable(enabled:))
+}
+
+fn decode_sortable() -> decode.Decoder(Sortable) {
+  use enabled <- decode.field("enabled", decode.bool)
+  decode.success(Sortable(enabled:))
+}
+
+fn decode_distinct() -> decode.Decoder(Distinct) {
+  use enabled <- decode.field("enabled", decode.bool)
+  decode.success(Distinct(enabled:))
 }

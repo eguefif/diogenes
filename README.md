@@ -63,70 +63,7 @@ by the sans-io library in a MeilisearchError record.
 
 Further documentation can be found at <https://hexdocs.pm/diogenes>.
 
-## Features Development
-
-- [ ] For HTTPC and dynamic Error, should we transform them into our own error or the documentation
-        should mention where to find the error type?
-
-### 1. System
-- [x] Health check
-
-### 2. Indexes
-- [x] Create index
-- [ ] Get index
-- [ ] Delete index
-
-### 3. Settings
-- [ ] Get/update embedders
-- [ ] Get/update searchable attributes
-- [ ] Get/update filterable attributes
-
-### 4. Tasks
-- [ ] Wait for task completion
-- [ ] Get task by id
-
-### 5. Documents
-- [x] Add or replace documents
-- [ ] Delete all documents
-- [ ] Delete document by id
-
-### 6. Search
-- [ ] Semantic search (vector)
-- [ ] Hybrid search (semantic + keyword)
-- [ ] Basic keyword search
-- [ ] Filter
-- [ ] Pagination
-
-### Backlog
-- [ ] Add or update documents (partial)
-- [ ] Get document by id
-- [ ] List documents
-- [ ] Sort
-- [ ] Faceted search
-- [ ] Highlight matches
-- [ ] Crop matches
-- [ ] Multi-index search (federated)
-- [ ] Get/update ranking rules
-- [ ] Get/update sortable attributes
-- [ ] Get/update stop words
-- [ ] Get/update synonyms
-- [ ] Get/update typo tolerance
-- [ ] Get/update faceting
-- [ ] Get/update pagination defaults
-- [ ] Get/update distinct attribute
-- [ ] Reset settings
-- [ ] List indexes
-- [ ] Update index primary key
-- [ ] List tasks
-- [ ] Cancel tasks
-- [ ] Delete tasks
-- [ ] API key management
-- [ ] Get version
-- [ ] Get stats
 
 ## Development
 
-```sh
-gleam run   # Run the project
-gleam test  # Run the tests
-```
+If you want to contribute, there is a [test project](https://github.com/eguefif/diogenes_test) that setup a meilisearch docker. The tester will only run as many requests as it needs for all the functions in the library.

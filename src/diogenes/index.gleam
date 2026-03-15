@@ -6,7 +6,7 @@ import internals/http_tooling.{send_request}
 // TODO:
 // - [x] get index
 // - [x] update index
-// - [ ] swap index
+// - [x] swap index
 // - [ ] list index fields
 
 /// Creates a Meilisearch index
@@ -103,4 +103,19 @@ pub fn swap_index(
 ) -> Result(MeilisearchResponse(task), Error) {
   let #(request, parser) = sansio_index.swap_index(client, index_pairs)
   send_request(request, [401], parser)
+}
+
+/// Retrieves a paginated list of fields within an index, along with metadata about each field's configuration
+///
+/// - uid: unique identifier of the target index
+/// - filter: filter criteria such as offset, limit, and attribute filters (displayed, searchable, sortable, filterable, etc.)
+///
+/// https://www.meilisearch.com/docs/reference/api/indexes/list-index-fields
+pub fn list_index_fields(
+  client: Client,
+  uid: String,
+  filter: sansio_index.Index,
+) -> Result(MeilisearchResponse(sansio_index.IndexField), Error) {
+  let #(request, parser) = sansio_index.list_index_fields(client, uid, filter)
+  send_request(request, [401, 404], parser)
 }

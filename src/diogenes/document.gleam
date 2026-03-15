@@ -5,9 +5,11 @@ import gleam/json
 import internals/http_tooling.{send_request}
 
 // TODO: 
-// - [ ] get document
+// - [x] list document with get
 // - [ ] list document with post
+// - [x] add or create documents
 // - [ ] add or update documents
+// - [ ] get document
 // - [ ] delete document
 // - [ ] delete all documents
 // - [ ] delete documents by filter

@@ -46,7 +46,7 @@ pub type Error {
 pub type MeilisearchResponse(result_type) {
   Task(
     task_uid: Int,
-    index_uid: String,
+    index_uid: Option(String),
     status: TaskStatus,
     type_: TaskType,
     enqueued_at: String,
@@ -123,7 +123,10 @@ pub fn task_to_json(task: MeilisearchResponse(a)) -> json.Json {
   let assert Task(..) = task
   let object_task = [
     #("taskUid", json.int(task.task_uid)),
-    #("indexUid", json.string(task.index_uid)),
+    #("indexUid", case task.index_uid {
+      option.Some(index_uid) -> json.string(index_uid)
+      option.None -> json.null()
+    }),
     #("status", task_status_to_json(task.status)),
     #("type", task_type_to_json(task.type_)),
     #("enqueuedAt", json.string(task.enqueued_at)),
@@ -140,7 +143,11 @@ pub fn task_from_json(
 ) -> Result(MeilisearchResponse(a), json.DecodeError) {
   let decoder = {
     use task_uid <- decode.field("taskUid", decode.int)
-    use index_uid <- decode.field("indexUid", decode.string)
+    use index_uid <- decode.optional_field(
+      "indexUid",
+      option.None,
+      decode.optional(decode.string),
+    )
     use status <- decode.field(
       "status",
       decode.string |> decode.map(fn(v) { task_status_map(v) }),

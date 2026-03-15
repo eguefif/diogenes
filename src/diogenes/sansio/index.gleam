@@ -13,6 +13,8 @@ import internals/http_tooling.{create_base_request}
 
 pub type Index {
   IndexCreation(uid: String, primary_key: Option(String))
+  IndexUpdate(uid: String, new_uid: Option(String), primary_key: Option(String))
+  IndexPairSwap(index_a: String, index_b: String, rename: Bool)
   Index(
     uid: String,
     primary_key: Option(String),
@@ -61,6 +63,63 @@ fn index_creation_to_json(idx: Index) -> json.Json {
   let assert IndexCreation(..) = idx
   json.object([
     #("uid", json.string(idx.uid)),
+    #("primaryKey", case idx.primary_key {
+      option.Some(pk) -> json.string(pk)
+      option.None -> json.null()
+    }),
+  ])
+}
+
+/// Updates an existing index's primary key or UID
+///
+/// - uid: unique identifier of the index to update
+/// - new_uid: new UID to rename the index (optional)
+/// - primary_key: new primary key for the index (optional)
+///
+/// The primary key cannot be changed if the index already contains documents.
+/// Returns a 404 error if the index does not exist.
+///
+/// https://www.meilisearch.com/docs/reference/api/indexes/update-index
+pub fn update_index(
+  client: Client,
+  uid: String,
+  new_uid: Option(String),
+  primary_key: Option(String),
+) -> #(
+  Request(String),
+  fn(Int, String) -> Result(MeilisearchResponse(a), Error),
+) {
+  let body =
+    json.to_string(
+      index_update_to_json(IndexUpdate(uid:, new_uid:, primary_key:)),
+    )
+
+  let request =
+    create_base_request(client, "/indexes/" <> uid)
+    |> request.set_body(body)
+    |> request.set_method(http.Patch)
+
+  let parser = fn(status: Int, body: String) {
+    case status {
+      202 ->
+        case task_from_json(body) {
+          Ok(task) -> Ok(task)
+          Error(err) -> Error(JsonError(err))
+        }
+      401 -> Error(meilisearch_error_from_json(body))
+      _ -> Error(UnexpectedHttpStatusCodeError(status, body))
+    }
+  }
+  #(request, parser)
+}
+
+fn index_update_to_json(idx: Index) -> json.Json {
+  let assert IndexUpdate(..) = idx
+  json.object([
+    #("uid", case idx.new_uid {
+      option.Some(uid) -> json.string(uid)
+      option.None -> json.null()
+    }),
     #("primaryKey", case idx.primary_key {
       option.Some(pk) -> json.string(pk)
       option.None -> json.null()
@@ -195,4 +254,46 @@ fn index_decoder() -> decode.Decoder(Index) {
   use updated_at <- decode.field("updatedAt", decode.string)
 
   decode.success(Index(uid:, primary_key:, created_at:, updated_at:))
+}
+
+/// Swaps the documents, settings, and task history of two or more index pairs
+///
+/// - index_pairs: list of IndexPairSwap values, each pairing two index UIDs to swap
+///
+/// All swaps in a single request are atomic: either all succeed or none do.
+/// A single request can include multiple swap pairs.
+///
+/// https://www.meilisearch.com/docs/reference/api/indexes/swap-indexes
+pub fn swap_index(
+  client: Client,
+  index_pairs: List(Index),
+) -> #(
+  Request(String),
+  fn(Int, String) -> Result(MeilisearchResponse(task), Error),
+) {
+  let body = json.to_string(json.array(index_pairs, index_pair_swap_to_json))
+  let request =
+    create_base_request(client, "/swap-indexes")
+    |> request.set_method(http.Post)
+    |> request.set_body(body)
+  let parser = fn(status: Int, body: String) {
+    case status {
+      202 ->
+        case task_from_json(body) {
+          Ok(task) -> Ok(task)
+          Error(err) -> Error(JsonError(err))
+        }
+      401 -> Error(meilisearch_error_from_json(body))
+      _ -> Error(UnexpectedHttpStatusCodeError(status, body))
+    }
+  }
+  #(request, parser)
+}
+
+fn index_pair_swap_to_json(pairs: Index) -> json.Json {
+  let assert IndexPairSwap(..) = pairs
+  json.object([
+    #("indexes", json.array([pairs.index_a, pairs.index_b], json.string)),
+    #("rename", json.bool(pairs.rename)),
+  ])
 }

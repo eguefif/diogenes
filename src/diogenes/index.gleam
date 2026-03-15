@@ -5,7 +5,7 @@ import internals/http_tooling.{send_request}
 
 // TODO:
 // - [x] get index
-// - [ ] update index
+// - [x] update index
 // - [ ] swap index
 // - [ ] list index fields
 
@@ -66,4 +66,41 @@ pub fn get_index(
 ) -> Result(MeilisearchResponse(sansio_index.Index), Error) {
   let #(request, parser) = sansio_index.get_index(client, uid)
   send_request(request, [401, 404], parser)
+}
+
+/// Updates an existing index's primary key or UID
+///
+/// - uid: unique identifier of the index to update
+/// - new_uid: new UID to rename the index (optional)
+/// - primary_key: new primary key for the index (optional)
+///
+/// The primary key cannot be changed if the index already contains documents.
+/// Returns a 404 error if the index does not exist.
+///
+/// https://www.meilisearch.com/docs/reference/api/indexes/update-index
+pub fn update_index(
+  client: Client,
+  uid: String,
+  new_uid: Option(String),
+  primary_key: Option(String),
+) -> Result(MeilisearchResponse(sansio_index.Index), Error) {
+  let #(request, parser) =
+    sansio_index.update_index(client, uid, new_uid, primary_key)
+  send_request(request, [401, 404], parser)
+}
+
+/// Swaps the documents, settings, and task history of two or more index pairs
+///
+/// - index_pairs: list of IndexPairSwap values, each pairing two index UIDs to swap
+///
+/// All swaps in a single request are atomic: either all succeed or none do.
+/// A single request can include multiple swap pairs.
+///
+/// https://www.meilisearch.com/docs/reference/api/indexes/swap-indexes
+pub fn swap_index(
+  client: Client,
+  index_pairs: List(sansio_index.Index),
+) -> Result(MeilisearchResponse(task), Error) {
+  let #(request, parser) = sansio_index.swap_index(client, index_pairs)
+  send_request(request, [401], parser)
 }

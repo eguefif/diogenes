@@ -37,7 +37,6 @@ pub type Client {
 pub type Error {
   Uri
   TransportError(httpc.HttpError)
-  ResponseError(status: Int, body: String)
   MeilisearchError(message: String, code: String, type_: String, link: String)
   JsonError(json.DecodeError)
   UnexpectedHttpStatusCodeError(status: Int, body: String)

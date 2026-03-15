@@ -2,8 +2,8 @@
 ////
 
 import diogenes.{
-  type Client, type Error, type MeilisearchResponse, ResponseError,
-  TransportError,
+  type Client, type Error, type MeilisearchResponse, TransportError,
+  UnexpectedHttpStatusCodeError,
 }
 import gleam/http/request.{type Request}
 import gleam/http/response.{type Response, Response}
@@ -56,7 +56,7 @@ fn expect_success(
   let is_api_error = check_if_status_is_api_error(status, api_error_status)
   case status {
     _ if is_api_error == True -> next(body)
-    _ if status >= 400 -> Error(ResponseError(status:, body:))
+    _ if status >= 400 -> Error(UnexpectedHttpStatusCodeError(status:, body:))
     _ -> next(body)
   }
 }

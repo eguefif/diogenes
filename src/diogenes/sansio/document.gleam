@@ -126,3 +126,34 @@ pub type ListDocumentsParams {
     sort: String,
   )
 }
+
+/// Permanently deletes all documents from an index while preserving its settings and metadata
+///
+/// - index_uid: unique identifier of the target index
+///
+/// This is an asynchronous operation that returns a task object for progress tracking.
+///
+/// https://www.meilisearch.com/docs/reference/api/documents/delete-all-documents
+pub fn delete_all_documents(
+  client: Client,
+  index_uid: String,
+) -> #(
+  Request(String),
+  fn(Int, String) -> Result(MeilisearchResponse(a), Error),
+) {
+  let request =
+    create_base_request(client, "/indexes/" <> index_uid <> "/documents")
+    |> request.set_method(http.Delete)
+  let parser = fn(status: Int, body: String) {
+    case status {
+      202 ->
+        case task_from_json(body) {
+          Ok(task) -> Ok(task)
+          Error(error) -> Error(JsonError(error))
+        }
+      401 | 404 -> Error(meilisearch_error_from_json(body))
+      _ -> Error(UnexpectedHttpStatusCodeError(status, body))
+    }
+  }
+  #(request, parser)
+}

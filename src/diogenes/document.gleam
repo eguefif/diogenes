@@ -59,3 +59,19 @@ pub fn list_documents_with_get(
 pub fn default_list_documents_params() -> sansio_document.ListDocumentsParams {
   sansio_document.ListDocumentsParams(0, 20, [], False, [], "", "")
 }
+
+/// Permanently deletes all documents from an index while preserving its settings and metadata
+///
+/// - index_uid: unique identifier of the target index
+///
+/// This is an asynchronous operation that returns a task object for progress tracking.
+///
+/// https://www.meilisearch.com/docs/reference/api/documents/delete-all-documents
+pub fn delete_all_documents(
+  client: Client,
+  index_uid: String,
+) -> Result(MeilisearchResponse(task), Error) {
+  let #(request, parser) =
+    sansio_document.delete_all_documents(client, index_uid)
+  send_request(request, [401, 404], parser)
+}

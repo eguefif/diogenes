@@ -1,7 +1,7 @@
 import diogenes.{
   type Client, type Error, type MeilisearchResponse, JsonError,
-  UnexpectedHttpStatusCodeError, meilisearch_error_from_json,
-  meilisearch_results_from_json, task_from_json,
+  MeilisearchSingleResult, UnexpectedHttpStatusCodeError,
+  meilisearch_error_from_json, meilisearch_results_from_json, task_from_json,
 }
 import gleam/dynamic/decode
 import gleam/http
@@ -265,4 +265,66 @@ pub fn delete_document(
     }
   }
   #(request, parser)
+}
+
+/// Retrieves a single document from an index using its primary key
+///
+/// - index_uid: unique identifier of the target index
+/// - document_id: primary key value of the document to retrieve
+/// - query_params: optional fields selection and vector retrieval options
+/// - decoder: function to decode the document from JSON
+///
+/// [Meilisearch documentation](https://www.meilisearch.com/docs/reference/api/documents/get-document)
+pub fn get_document(
+  client: Client,
+  index_uid: String,
+  document_id: String,
+  query_params: GetDocumentParams,
+  decoder: decode.Decoder(document_type),
+) -> #(
+  Request(String),
+  fn(Int, String) -> Result(MeilisearchResponse(document_type), Error),
+) {
+  let request =
+    create_base_request(
+      client,
+      "/indexes/" <> index_uid <> "/documents/" <> document_id,
+    )
+    |> request.set_method(http.Get)
+    |> request.set_query(get_document_params_to_query(query_params))
+  let parser = fn(status: Int, body: String) {
+    case status {
+      200 ->
+        case json.parse(body, decoder) {
+          Ok(document) -> Ok(MeilisearchSingleResult(result: document))
+          Error(error) -> Error(JsonError(error))
+        }
+      401 | 404 -> Error(meilisearch_error_from_json(body))
+      _ -> Error(UnexpectedHttpStatusCodeError(status, body))
+    }
+  }
+
+  #(request, parser)
+}
+
+pub type GetDocumentParams {
+  GetDocumentParams(fields: FieldsParam, retrieve_vectors: Bool)
+}
+
+pub fn get_document_params_to_query(
+  params: GetDocumentParams,
+) -> List(#(String, String)) {
+  let query = case params.fields {
+    None -> []
+    All -> [#("fields", "*")]
+    Ids(ids) -> [#("fields", string.join(ids, ","))]
+  }
+  let query = [
+    #("retrieveVectors", case params.retrieve_vectors {
+      True -> "true"
+      False -> "false"
+    }),
+    ..query
+  ]
+  query
 }

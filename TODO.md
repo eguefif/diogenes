@@ -17,14 +17,14 @@
 ## Documents
 
 - [x] Get documents - `GET /indexes/{indexUid}/documents`
-- [ ] Get documents with POST - `POST /indexes/{indexUid}/documents/fetch`
-- [ ] Get one document - `GET /indexes/{indexUid}/documents/{documentId}`
+- [x] Get documents with POST - `POST /indexes/{indexUid}/documents/fetch`
+- [x] Get one document - `GET /indexes/{indexUid}/documents/{documentId}`
 - [x] Add or replace documents - `POST /indexes/{indexUid}/documents`
 - [ ] Add or update documents - `PUT /indexes/{indexUid}/documents`
-- [ ] Delete all documents - `DELETE /indexes/{indexUid}/documents`
+- [x] Delete all documents - `DELETE /indexes/{indexUid}/documents`
+- [x] Delete a document - `DELETE /indexes/{indexUid}/documents/{documentId}`
 - [ ] Delete documents by batch - `POST /indexes/{indexUid}/delete-batch`
 - [ ] Delete documents by filter - `POST /indexes/{indexUid}/documents/delete`
-- [ ] Delete a document - `DELETE /indexes/{indexUid}/documents/{documentId}`
 - [ ] Edit documents by function - `POST /indexes/{indexUid}/documents/edit`
 
 ## Search

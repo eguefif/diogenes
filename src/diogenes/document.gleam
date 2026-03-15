@@ -7,15 +7,43 @@ import internals/http_tooling.{send_request}
 
 // TODO: 
 // - [x] list document with get
-// - [ ] list document with post
+// - [x] list document with post
 // - [x] add or create documents
 // - [ ] add or update documents
-// - [ ] get document
+// - [ ] Handle multi format to add or ... csv, ndjson
+// - [ ] Add query paramter to add or ... documents functions
+// - [x] get document
 // - [x] delete document
 // - [x] delete all documents
 // - [ ] delete documents by filter
 // - [ ] delete documents by batch
 // - [ ] edit documents by function - Todo later
+
+/// Retrieves a single document from an index using its primary key
+///
+/// - index_uid: unique identifier of the target index
+/// - document_id: primary key value of the document to retrieve
+/// - query_params: optional fields selection and vector retrieval options
+/// - decoder: function to decode the document from JSON
+///
+/// [Meilisearch documentation](https://www.meilisearch.com/docs/reference/api/documents/get-document)
+pub fn get_document(
+  client: Client,
+  index_uid: String,
+  document_id: String,
+  query_params: sansio_document.GetDocumentParams,
+  decoder: decode.Decoder(document_type),
+) -> Result(MeilisearchResponse(document_type), Error) {
+  let #(request, parser) =
+    sansio_document.get_document(
+      client,
+      index_uid,
+      document_id,
+      query_params,
+      decoder,
+    )
+  send_request(request, [401, 404], parser)
+}
 
 /// Adds a list of documents to an index, replacing any existing documents with the same primary key
 ///

@@ -93,7 +93,7 @@ pub type Localized {
 /// - uid: unique index identifier
 /// - primary_key: id from the document to references as a primary_key
 ///
-/// https://www.meilisearch.com/docs/reference/api/indexes/create-index
+/// [Meilisearch documentation](https://www.meilisearch.com/docs/reference/api/indexes/create-index)
 pub fn create_index(
   client: Client,
   uid: String,
@@ -109,6 +109,7 @@ pub fn create_index(
     create_base_request(client, "/indexes")
     |> request.set_body(body)
     |> request.set_method(http.Post)
+    |> request.set_header("Content-Type", "application/json")
 
   let parser = fn(status: Int, body: String) {
     case status {
@@ -144,7 +145,7 @@ fn index_creation_to_json(idx: Index) -> json.Json {
 /// The primary key cannot be changed if the index already contains documents.
 /// Returns a 404 error if the index does not exist.
 ///
-/// https://www.meilisearch.com/docs/reference/api/indexes/update-index
+/// [Meilisearch documentation](https://www.meilisearch.com/docs/reference/api/indexes/update-index)
 pub fn update_index(
   client: Client,
   uid: String,
@@ -199,7 +200,7 @@ fn index_update_to_json(idx: Index) -> json.Json {
 /// Returns the index uid, primary key, and creation/update timestamps.
 /// Returns a 404 error if the index does not exist.
 ///
-/// https://www.meilisearch.com/docs/reference/api/indexes/get-index
+/// [Meilisearch documentation](https://www.meilisearch.com/docs/reference/api/indexes/get-index)
 pub fn get_index(
   client: Client,
   uid: String,
@@ -229,7 +230,7 @@ pub fn get_index(
 ///
 /// - uid: unique index identifier
 ///
-/// https://www.meilisearch.com/docs/reference/api/indexes/delete-index
+/// [Meilisearch documentation](https://www.meilisearch.com/docs/reference/api/indexes/delete-index)
 pub fn delete_index(
   client: Client,
   uid: String,
@@ -275,7 +276,7 @@ pub fn delete_index(
 /// - offset: number of indexes to skip (defaults to 0)
 /// - limit: maximum number of indexes to return (defaults to 20)
 ///
-/// https://www.meilisearch.com/docs/reference/api/indexes/list-all-indexes
+/// [Meilisearch documentation](https://www.meilisearch.com/docs/reference/api/indexes/list-all-indexes)
 pub fn list_index(
   client: Client,
   offset: Option(Int),
@@ -328,7 +329,7 @@ fn index_decoder() -> decode.Decoder(Index) {
 /// All swaps in a single request are atomic: either all succeed or none do.
 /// A single request can include multiple swap pairs.
 ///
-/// https://www.meilisearch.com/docs/reference/api/indexes/swap-indexes
+/// [Meilisearch documentation](https://www.meilisearch.com/docs/reference/api/indexes/swap-indexes)
 pub fn swap_index(
   client: Client,
   index_pairs: List(Index),
@@ -340,6 +341,7 @@ pub fn swap_index(
   let request =
     create_base_request(client, "/swap-indexes")
     |> request.set_method(http.Post)
+    |> request.set_header("Content-Type", "application/json")
     |> request.set_body(body)
   let parser = fn(status: Int, body: String) {
     case status {
@@ -368,7 +370,7 @@ fn index_pair_swap_to_json(pairs: Index) -> json.Json {
 /// - uid: unique identifier of the target index
 /// - filters: filter criteria such as offset, limit, and attribute filters (displayed, searchable, sortable, filterable, etc.)
 ///
-/// https://www.meilisearch.com/docs/reference/api/indexes/list-index-fields
+/// [Meilisearch documentation](https://www.meilisearch.com/docs/reference/api/indexes/list-index-fields)
 pub fn list_index_fields(
   client: Client,
   uid: String,
@@ -380,6 +382,7 @@ pub fn list_index_fields(
   let request =
     create_base_request(client, "/indexes/" <> uid <> "/fields")
     |> request.set_method(http.Post)
+    |> request.set_header("Content-Type", "application/json")
     |> request.set_body(list_index_request_to_json(filters))
 
   let decoder = fn(status: Int, body: String) {

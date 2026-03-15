@@ -14,7 +14,7 @@ import internals/http_tooling.{send_request}
 /// - uid: unique index identifier
 /// - primary_key: id from the document to references as a primary_key
 ///
-/// https://www.meilisearch.com/docs/reference/api/indexes/create-index
+/// [Meilisearch documentation](https://www.meilisearch.com/docs/reference/api/indexes/create-index)
 pub fn create_index(
   client: Client,
   uid: String,
@@ -29,7 +29,7 @@ pub fn create_index(
 /// - offset: number of indexes to skip (defaults to 0)
 /// - limit: maximum number of indexes to return (defaults to 20)
 ///
-/// https://www.meilisearch.com/docs/reference/api/indexes/list-all-indexes
+/// [Meilisearch documentation](https://www.meilisearch.com/docs/reference/api/indexes/list-all-indexes)
 pub fn list_index(
   client: Client,
   offset: Option(Int),
@@ -43,7 +43,7 @@ pub fn list_index(
 ///
 /// - uid: unique index identifier
 ///
-/// https://www.meilisearch.com/docs/reference/api/indexes/delete-index
+/// [Meilisearch documentation](https://www.meilisearch.com/docs/reference/api/indexes/delete-index)
 pub fn delete_index(
   client: Client,
   uid: String,
@@ -59,7 +59,7 @@ pub fn delete_index(
 /// Returns the index uid, primary key, and creation/update timestamps.
 /// Returns a 404 error if the index does not exist.
 ///
-/// https://www.meilisearch.com/docs/reference/api/indexes/get-index
+/// [Meilisearch documentation](https://www.meilisearch.com/docs/reference/api/indexes/get-index)
 pub fn get_index(
   client: Client,
   uid: String,
@@ -77,7 +77,7 @@ pub fn get_index(
 /// The primary key cannot be changed if the index already contains documents.
 /// Returns a 404 error if the index does not exist.
 ///
-/// https://www.meilisearch.com/docs/reference/api/indexes/update-index
+/// [Meilisearch documentation](https://www.meilisearch.com/docs/reference/api/indexes/update-index)
 pub fn update_index(
   client: Client,
   uid: String,
@@ -96,7 +96,7 @@ pub fn update_index(
 /// All swaps in a single request are atomic: either all succeed or none do.
 /// A single request can include multiple swap pairs.
 ///
-/// https://www.meilisearch.com/docs/reference/api/indexes/swap-indexes
+/// [Meilisearch documentation](https://www.meilisearch.com/docs/reference/api/indexes/swap-indexes)
 pub fn swap_index(
   client: Client,
   index_pairs: List(sansio_index.Index),
@@ -110,7 +110,7 @@ pub fn swap_index(
 /// - uid: unique identifier of the target index
 /// - filter: filter criteria such as offset, limit, and attribute filters (displayed, searchable, sortable, filterable, etc.)
 ///
-/// https://www.meilisearch.com/docs/reference/api/indexes/list-index-fields
+/// [Meilisearch documentation](https://www.meilisearch.com/docs/reference/api/indexes/list-index-fields)
 pub fn list_index_fields(
   client: Client,
   uid: String,

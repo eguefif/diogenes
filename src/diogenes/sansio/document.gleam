@@ -8,12 +8,19 @@ import gleam/http
 import gleam/http/request.{type Request}
 import gleam/int
 import gleam/json
+import gleam/option
 import gleam/string
 import internals/http_tooling.{create_base_request}
 
-/// This take a list of documents which are of the type you want.
-/// The encoder will allow the diogenes to encode into json.
-/// https://www.meilisearch.com/docs/reference/api/documents/add-or-replace-documents
+/// Adds a list of documents to an index, replacing any existing documents with the same primary key
+///
+/// - index_uid: unique identifier of the target index
+/// - documents: list of documents to add
+/// - encoder: function to encode each document into JSON
+///
+/// This is an asynchronous operation that returns a task object for progress tracking.
+///
+/// [Meilisearch documentation](https://www.meilisearch.com/docs/reference/api/documents/add-or-replace-documents)
 pub fn add_or_replace_documents(
   client: Client,
   index_uid: String,
@@ -43,9 +50,13 @@ pub fn add_or_replace_documents(
   })
 }
 
-/// Retrieves all documents with pagination (sans-io)
+/// Retrieves a paginated list of documents from an index using query parameters
 ///
-/// https://www.meilisearch.com/docs/reference/api/documents/list-documents-with-get
+/// - index_uid: unique identifier of the target index
+/// - parameters: pagination and filtering options (offset, limit, fields, filter, sort, ids, retrieve_vectors)
+/// - decoder: function to decode each document from JSON
+///
+/// [Meilisearch documentation](https://www.meilisearch.com/docs/reference/api/documents/list-documents-with-get)
 pub fn list_documents_with_get(
   client: Client,
   index_uid: String,
@@ -58,6 +69,7 @@ pub fn list_documents_with_get(
   let request =
     create_base_request(client, "/indexes/" <> index_uid <> "/documents")
     |> request.set_method(http.Get)
+    |> request.set_header("Content-Type", "application/json")
     |> request.set_query(build_documents_query_params(parameters))
 
   #(request, fn(status: Int, body: String) {
@@ -67,6 +79,66 @@ pub fn list_documents_with_get(
       _ -> Error(UnexpectedHttpStatusCodeError(status, body))
     }
   })
+}
+
+/// Retrieves a paginated list of documents from an index using a request body
+///
+/// - index_uid: unique identifier of the target index
+/// - parameters: pagination and filtering options (offset, limit, fields, filter, sort, ids, retrieve_vectors)
+/// - decoder: function to decode each document from JSON
+///
+/// Prefer this over `list_documents_with_get` when using complex filters.
+///
+/// [Meilisearch documentation](https://www.meilisearch.com/docs/reference/api/documents/list-documents-with-post)
+pub fn list_documents_with_post(
+  client: Client,
+  index_uid: String,
+  parameters: ListDocumentsParams,
+  decoder: decode.Decoder(document_type),
+) -> #(
+  Request(String),
+  fn(Int, String) -> Result(MeilisearchResponse(document_type), Error),
+) {
+  let request =
+    create_base_request(client, "/indexes/" <> index_uid <> "/documents/fetch")
+    |> request.set_method(http.Post)
+    |> request.set_header("Content-Type", "application/json")
+    |> request.set_query(build_documents_query_params(parameters))
+    |> request.set_body(documents_params_to_json(parameters))
+
+  let parser = fn(status: Int, body: String) {
+    case status {
+      200 -> meilisearch_results_from_json(body, decoder)
+      401 | 404 -> Error(meilisearch_error_from_json(body))
+      _ -> Error(UnexpectedHttpStatusCodeError(status, body))
+    }
+  }
+  #(request, parser)
+}
+
+fn documents_params_to_json(parameters: ListDocumentsParams) -> String {
+  let object =
+    json.object([
+      #("offset", json.int(parameters.offset)),
+      #("limit", json.int(parameters.limit)),
+      #("fields", case parameters.fields {
+        None -> json.null()
+        All -> json.string("*")
+        Ids(ids) -> json.array(ids, json.string)
+      }),
+      #("retrieveVectors", json.bool(parameters.retrieve_vectors)),
+      #("ids", case parameters.ids {
+        option.Some(ids) -> json.array(ids, json.string)
+        option.None -> json.null()
+      }),
+      #("filter", json.string(parameters.filter)),
+      #("sort", case parameters.sort {
+        [] -> json.null()
+        _ -> json.array(parameters.sort, json.string)
+      }),
+    ])
+
+  json.to_string(object)
 }
 
 fn build_documents_query_params(
@@ -93,22 +165,17 @@ fn build_documents_query_params(
   ]
 
   let params = case sort {
-    "" -> params
-    _ -> [#("sort", sort), ..params]
+    [] -> params
+    _ -> [#("sort", string.join(sort, ",")), ..params]
   }
   let params = case ids {
-    [] -> params
-    _ -> [#("ids", string.join(ids, ",")), ..params]
+    option.None -> params
+    option.Some(ids) -> [#("ids", string.join(ids, ",")), ..params]
   }
   case fields {
-    [] -> params
-    _ -> [
-      #("fields", case fields {
-        [] -> "*"
-        _ -> string.join(fields, ",")
-      }),
-      ..params
-    ]
+    None -> params
+    All -> [#("fields", "*"), ..params]
+    Ids(ids) -> [#("fields", string.join(ids, ",")), ..params]
   }
 }
 
@@ -119,12 +186,18 @@ pub type ListDocumentsParams {
   ListDocumentsParams(
     offset: Int,
     limit: Int,
-    fields: List(String),
+    fields: FieldsParam,
     retrieve_vectors: Bool,
-    ids: List(String),
+    ids: option.Option(List(String)),
     filter: String,
-    sort: String,
+    sort: List(String),
   )
+}
+
+pub type FieldsParam {
+  None
+  All
+  Ids(List(String))
 }
 
 /// Permanently deletes all documents from an index while preserving its settings and metadata
@@ -133,7 +206,7 @@ pub type ListDocumentsParams {
 ///
 /// This is an asynchronous operation that returns a task object for progress tracking.
 ///
-/// https://www.meilisearch.com/docs/reference/api/documents/delete-all-documents
+/// [Meilisearch documentation](https://www.meilisearch.com/docs/reference/api/documents/delete-all-documents)
 pub fn delete_all_documents(
   client: Client,
   index_uid: String,
@@ -143,6 +216,42 @@ pub fn delete_all_documents(
 ) {
   let request =
     create_base_request(client, "/indexes/" <> index_uid <> "/documents")
+    |> request.set_method(http.Delete)
+  let parser = fn(status: Int, body: String) {
+    case status {
+      202 ->
+        case task_from_json(body) {
+          Ok(task) -> Ok(task)
+          Error(error) -> Error(JsonError(error))
+        }
+      401 | 404 -> Error(meilisearch_error_from_json(body))
+      _ -> Error(UnexpectedHttpStatusCodeError(status, body))
+    }
+  }
+  #(request, parser)
+}
+
+/// Deletes a single document from an index using its primary key
+///
+/// - index_uid: unique identifier of the target index
+/// - primary_key: identifier of the document to delete
+///
+/// This is an asynchronous operation that returns a task object for progress tracking.
+///
+/// [Meilisearch documentation](https://www.meilisearch.com/docs/reference/api/documents/delete-document)
+pub fn delete_document(
+  client: Client,
+  index_uid: String,
+  primary_key: String,
+) -> #(
+  Request(String),
+  fn(Int, String) -> Result(MeilisearchResponse(a), Error),
+) {
+  let request =
+    create_base_request(
+      client,
+      "/indexes/" <> index_uid <> "/documents/" <> primary_key,
+    )
     |> request.set_method(http.Delete)
   let parser = fn(status: Int, body: String) {
     case status {

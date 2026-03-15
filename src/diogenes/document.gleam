@@ -2,6 +2,7 @@ import diogenes.{type Client, type Error, type MeilisearchResponse}
 import diogenes/sansio/document as sansio_document
 import gleam/dynamic/decode
 import gleam/json
+import gleam/option
 import internals/http_tooling.{send_request}
 
 // TODO: 
@@ -10,17 +11,21 @@ import internals/http_tooling.{send_request}
 // - [x] add or create documents
 // - [ ] add or update documents
 // - [ ] get document
-// - [ ] delete document
-// - [ ] delete all documents
+// - [x] delete document
+// - [x] delete all documents
 // - [ ] delete documents by filter
 // - [ ] delete documents by batch
-// - [ ] edit documents by function
+// - [ ] edit documents by function - Todo later
 
-/// This take a list of documents which are of the type you want.
+/// Adds a list of documents to an index, replacing any existing documents with the same primary key
 ///
-/// The encoder will allow the diogenes to encode into json.
+/// - index_uid: unique identifier of the target index
+/// - documents: list of documents to add
+/// - encoder: function to encode each document into JSON
 ///
-/// https://www.meilisearch.com/docs/reference/api/documents/add-or-replace-documents
+/// This is an asynchronous operation that returns a task object for progress tracking.
+///
+/// [Meilisearch documentation](https://www.meilisearch.com/docs/reference/api/documents/add-or-replace-documents)
 pub fn add_or_replace_documents(
   client: Client,
   index_uid: String,
@@ -37,9 +42,13 @@ pub fn add_or_replace_documents(
   send_request(request, [401, 404], parser)
 }
 
-/// Retrieves all documents with pagination
+/// Retrieves a paginated list of documents from an index using query parameters
 ///
-/// https://www.meilisearch.com/docs/reference/api/documents/list-documents-with-get
+/// - index_uid: unique identifier of the target index
+/// - parameters: pagination and filtering options (offset, limit, fields, filter, sort, ids, retrieve_vectors)
+/// - decoder: function to decode each document from JSON
+///
+/// [Meilisearch documentation](https://www.meilisearch.com/docs/reference/api/documents/list-documents-with-get)
 pub fn list_documents_with_get(
   client: Client,
   index_uid: String,
@@ -56,8 +65,41 @@ pub fn list_documents_with_get(
   send_request(request, [401, 404], parser)
 }
 
+/// Retrieves a paginated list of documents from an index using a request body
+///
+/// - index_uid: unique identifier of the target index
+/// - parameters: pagination and filtering options (offset, limit, fields, filter, sort, ids, retrieve_vectors)
+/// - decoder: function to decode each document from JSON
+///
+/// Prefer this over `list_documents_with_get` when using complex filters.
+///
+/// [Meilisearch documentation](https://www.meilisearch.com/docs/reference/api/documents/list-documents-with-post)
+pub fn list_documents_with_post(
+  client: Client,
+  index_uid: String,
+  parameters: sansio_document.ListDocumentsParams,
+  decoder: decode.Decoder(document_type),
+) -> Result(MeilisearchResponse(document_type), Error) {
+  let #(request, parser) =
+    sansio_document.list_documents_with_post(
+      client,
+      index_uid,
+      parameters,
+      decoder,
+    )
+  send_request(request, [401, 404], parser)
+}
+
 pub fn default_list_documents_params() -> sansio_document.ListDocumentsParams {
-  sansio_document.ListDocumentsParams(0, 20, [], False, [], "", "")
+  sansio_document.ListDocumentsParams(
+    0,
+    20,
+    sansio_document.None,
+    False,
+    option.None,
+    "",
+    [],
+  )
 }
 
 /// Permanently deletes all documents from an index while preserving its settings and metadata
@@ -66,12 +108,30 @@ pub fn default_list_documents_params() -> sansio_document.ListDocumentsParams {
 ///
 /// This is an asynchronous operation that returns a task object for progress tracking.
 ///
-/// https://www.meilisearch.com/docs/reference/api/documents/delete-all-documents
+/// [Meilisearch documentation](https://www.meilisearch.com/docs/reference/api/documents/delete-all-documents)
 pub fn delete_all_documents(
   client: Client,
   index_uid: String,
 ) -> Result(MeilisearchResponse(task), Error) {
   let #(request, parser) =
     sansio_document.delete_all_documents(client, index_uid)
+  send_request(request, [401, 404], parser)
+}
+
+/// Deletes a single document from an index using its primary key
+///
+/// - index_id: unique identifier of the target index
+/// - primary_key: identifier of the document to delete
+///
+/// This is an asynchronous operation that returns a task object for progress tracking.
+///
+/// [Meilisearch documentation](https://www.meilisearch.com/docs/reference/api/documents/delete-document)
+pub fn delete_document(
+  client: Client,
+  index_uid: String,
+  primary_key: String,
+) -> Result(MeilisearchResponse(task), Error) {
+  let #(request, parser) =
+    sansio_document.delete_document(client, index_uid, primary_key)
   send_request(request, [401, 404], parser)
 }

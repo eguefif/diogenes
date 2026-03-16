@@ -6,19 +6,8 @@ import gleam/option
 import internal/http_tooling.{send_request}
 
 // TODO: 
-// - [x] list document with get
-// - [x] list document with post
-// - [x] add or create documents
-// - [x] add or update documents
-// - [ ] Handle multi format to add or ... csv, ndjson
-// - [ ] Add query parameter to add or ... documents functions
-// - [x] get document
-// - [x] delete document
-// - [x] delete all documents
-// - [ ] delete documents by filter
-// - [ ] delete documents by batch
 // - [ ] edit documents by function - Todo later
-// - [ ] Be sure to be coherent with query param types: there should be in sansio or io
+// - [ ] Handle multi format to add or ... csv, ndjson
 
 /// Retrieves a single document from an index using its primary key
 ///
@@ -213,5 +202,41 @@ pub fn delete_document(
 ) -> Result(MeilisearchResponse(task), Error) {
   let #(request, parser) =
     sansio_document.delete_document(client, index_uid, primary_key)
+  send_request(request, [401, 404], parser)
+}
+
+/// Deletes all documents matching the given filter expression
+///
+/// - index_uid: unique identifier of the target index
+/// - filter: filter expression to match documents for deletion (e.g. `"genres = action"`)
+///
+/// This is an asynchronous operation that returns a task object for progress tracking.
+///
+/// [Meilisearch documentation](https://www.meilisearch.com/docs/reference/api/documents/delete-documents-by-filter)
+pub fn delete_documents_by_filter(
+  client: Client,
+  index_uid: String,
+  filter: String,
+) -> Result(MeilisearchResponse(task), Error) {
+  let #(request, parser) =
+    sansio_document.delete_documents_by_filter(client, index_uid, filter)
+  send_request(request, [401, 404], parser)
+}
+
+/// Deletes multiple documents in one request by providing a list of primary key values
+///
+/// - index_uid: unique identifier of the target index
+/// - documents_ids: list of primary key values of the documents to delete
+///
+/// This is an asynchronous operation that returns a task object for progress tracking.
+///
+/// [Meilisearch documentation](https://www.meilisearch.com/docs/reference/api/documents/delete-documents-by-batch)
+pub fn delete_documents_by_batch(
+  client: Client,
+  index_uid: String,
+  documents_ids: List(String),
+) -> Result(MeilisearchResponse(task), Error) {
+  let #(request, parser) =
+    sansio_document.delete_documents_by_batch(client, index_uid, documents_ids)
   send_request(request, [401, 404], parser)
 }

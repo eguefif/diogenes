@@ -2,6 +2,7 @@ import diogenes.{
   type Client, type Error, type MeilisearchResponse, JsonError,
   MeilisearchSingleResult, UnexpectedHttpStatusCodeError,
   meilisearch_error_from_json, meilisearch_results_from_json, task_from_json,
+  task_parser,
 }
 import gleam/bool
 import gleam/dynamic/decode
@@ -291,6 +292,69 @@ pub type FieldsParam {
   Ids(List(String))
 }
 
+/// Retrieves a single document from an index using its primary key
+///
+/// - index_uid: unique identifier of the target index
+/// - document_id: primary key value of the document to retrieve
+/// - query_params: optional fields selection and vector retrieval options
+/// - decoder: function to decode the document from JSON
+///
+/// [Meilisearch documentation](https://www.meilisearch.com/docs/reference/api/documents/get-document)
+pub fn get_document(
+  client: Client,
+  index_uid: String,
+  document_id: String,
+  query_params: GetDocumentParams,
+  decoder: decode.Decoder(document_type),
+) -> #(
+  Request(String),
+  fn(Int, String) -> Result(MeilisearchResponse(document_type), Error),
+) {
+  let request =
+    create_base_request(
+      client,
+      "/indexes/" <> index_uid <> "/documents/" <> document_id,
+    )
+    |> request.set_method(http.Get)
+    |> request.set_query(get_document_params_to_query(query_params))
+  let parser = fn(status: Int, body: String) {
+    case status {
+      200 ->
+        case json.parse(body, decoder) {
+          Ok(document) -> Ok(MeilisearchSingleResult(result: document))
+          Error(error) -> Error(JsonError(error))
+        }
+      401 | 404 -> Error(meilisearch_error_from_json(body))
+      _ -> Error(UnexpectedHttpStatusCodeError(status, body))
+    }
+  }
+
+  #(request, parser)
+}
+
+/// Query parameters for the get_document function
+pub type GetDocumentParams {
+  GetDocumentParams(fields: FieldsParam, retrieve_vectors: Bool)
+}
+
+fn get_document_params_to_query(
+  params: GetDocumentParams,
+) -> List(#(String, String)) {
+  let query = case params.fields {
+    None -> []
+    All -> [#("fields", "*")]
+    Ids(ids) -> [#("fields", string.join(ids, ","))]
+  }
+  let query = [
+    #("retrieveVectors", case params.retrieve_vectors {
+      True -> "true"
+      False -> "false"
+    }),
+    ..query
+  ]
+  query
+}
+
 /// Permanently deletes all documents from an index while preserving its settings and metadata
 ///
 /// - index_uid: unique identifier of the target index
@@ -358,65 +422,64 @@ pub fn delete_document(
   #(request, parser)
 }
 
-/// Retrieves a single document from an index using its primary key
+/// Deletes all documents matching the given filter expression
 ///
 /// - index_uid: unique identifier of the target index
-/// - document_id: primary key value of the document to retrieve
-/// - query_params: optional fields selection and vector retrieval options
-/// - decoder: function to decode the document from JSON
+/// - filter: filter expression to match documents for deletion (e.g. `"genres = action"`)
 ///
-/// [Meilisearch documentation](https://www.meilisearch.com/docs/reference/api/documents/get-document)
-pub fn get_document(
+/// This is an asynchronous operation that returns a task object for progress tracking.
+///
+/// [Meilisearch documentation](https://www.meilisearch.com/docs/reference/api/documents/delete-documents-by-filter)
+pub fn delete_documents_by_filter(
   client: Client,
   index_uid: String,
-  document_id: String,
-  query_params: GetDocumentParams,
-  decoder: decode.Decoder(document_type),
+  filter: String,
 ) -> #(
   Request(String),
-  fn(Int, String) -> Result(MeilisearchResponse(document_type), Error),
+  fn(Int, String) -> Result(MeilisearchResponse(a), Error),
 ) {
+  let body = json.object([#("filter", json.string(filter))]) |> json.to_string()
   let request =
-    create_base_request(
-      client,
-      "/indexes/" <> index_uid <> "/documents/" <> document_id,
-    )
-    |> request.set_method(http.Get)
-    |> request.set_query(get_document_params_to_query(query_params))
+    create_base_request(client, "/indexes/" <> index_uid <> "/documents/delete")
+    |> request.set_method(http.Post)
+    |> request.set_body(body)
   let parser = fn(status: Int, body: String) {
     case status {
-      200 ->
-        case json.parse(body, decoder) {
-          Ok(document) -> Ok(MeilisearchSingleResult(result: document))
+      202 ->
+        case task_from_json(body) {
+          Ok(task) -> Ok(task)
           Error(error) -> Error(JsonError(error))
         }
       401 | 404 -> Error(meilisearch_error_from_json(body))
       _ -> Error(UnexpectedHttpStatusCodeError(status, body))
     }
   }
-
   #(request, parser)
 }
 
-/// Query parameters for the get_document function
-pub type GetDocumentParams {
-  GetDocumentParams(fields: FieldsParam, retrieve_vectors: Bool)
-}
-
-pub fn get_document_params_to_query(
-  params: GetDocumentParams,
-) -> List(#(String, String)) {
-  let query = case params.fields {
-    None -> []
-    All -> [#("fields", "*")]
-    Ids(ids) -> [#("fields", string.join(ids, ","))]
-  }
-  let query = [
-    #("retrieveVectors", case params.retrieve_vectors {
-      True -> "true"
-      False -> "false"
-    }),
-    ..query
-  ]
-  query
+/// Deletes multiple documents in one request by providing a list of primary key values
+///
+/// - index_uid: unique identifier of the target index
+/// - documents_ids: list of primary key values of the documents to delete
+///
+/// This is an asynchronous operation that returns a task object for progress tracking.
+///
+/// [Meilisearch documentation](https://www.meilisearch.com/docs/reference/api/documents/delete-documents-by-batch)
+pub fn delete_documents_by_batch(
+  client: Client,
+  index_uid: String,
+  documents_ids: List(String),
+) -> #(
+  Request(String),
+  fn(Int, String) -> Result(MeilisearchResponse(b), Error),
+) {
+  let body = json.array(documents_ids, json.string) |> json.to_string()
+  let request =
+    create_base_request(
+      client,
+      "/indexes/" <> index_uid <> "/documents/delete-batch",
+    )
+    |> request.set_method(http.Post)
+    |> request.set_body(body)
+  #(request, task_parser)
 }

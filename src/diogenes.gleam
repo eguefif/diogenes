@@ -62,6 +62,19 @@ pub type MeilisearchResponse(result_type) {
 }
 
 @internal
+pub fn task_parser(status: Int, body: String) {
+  case status {
+    202 ->
+      case task_from_json(body) {
+        Ok(task) -> Ok(task)
+        Error(error) -> Error(JsonError(error))
+      }
+    401 | 404 -> Error(meilisearch_error_from_json(body))
+    _ -> Error(UnexpectedHttpStatusCodeError(status, body))
+  }
+}
+
+@internal
 pub fn meilisearch_results_from_json(
   results_string: String,
   item_decoder: decode.Decoder(result_type),

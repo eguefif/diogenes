@@ -66,4 +66,4 @@ Further documentation can be found at <https://hexdocs.pm/diogenes>.
 
 ## Development
 
-If you want to contribute, there is a [test project](https://github.com/eguefif/diogenes_test) that setup a meilisearch docker. The tester will only run as many requests as it needs for all the functions in the library.
+If you want to contribute, there is a [test project](https://github.com/eguefif/diogenes_test) that setup a meilisearch docker. Nothing fancy, The tester will only run as many requests as it needs for all the functions in the library.

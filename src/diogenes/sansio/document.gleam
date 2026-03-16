@@ -3,12 +3,13 @@ import diogenes.{
   MeilisearchSingleResult, UnexpectedHttpStatusCodeError,
   meilisearch_error_from_json, meilisearch_results_from_json, task_from_json,
 }
+import gleam/bool
 import gleam/dynamic/decode
 import gleam/http
 import gleam/http/request.{type Request}
 import gleam/int
 import gleam/json
-import gleam/option
+import gleam/option.{type Option}
 import gleam/string
 import internal/http_tooling.{create_base_request}
 
@@ -16,6 +17,7 @@ import internal/http_tooling.{create_base_request}
 ///
 /// - index_uid: unique identifier of the target index
 /// - documents: list of documents to add
+/// - query_params: optional parameters (primary_key, csv_delimiter, custom_metadata, skip_creation)
 /// - encoder: function to encode each document into JSON
 ///
 /// This is an asynchronous operation that returns a task object for progress tracking.
@@ -25,6 +27,7 @@ pub fn add_or_replace_documents(
   client: Client,
   index_uid: String,
   documents: List(document_type),
+  query_params: AddDocumentsParams,
   encoder: fn(document_type) -> json.Json,
 ) -> #(
   Request(String),
@@ -35,6 +38,7 @@ pub fn add_or_replace_documents(
     create_base_request(client, "/indexes/" <> index_uid <> "/documents")
     |> request.set_method(http.Post)
     |> request.set_body(body)
+    |> request.set_query(add_documents_params_to_query(query_params))
 
   #(request, fn(status: Int, body: String) {
     case status {
@@ -48,6 +52,93 @@ pub fn add_or_replace_documents(
       _ -> Error(UnexpectedHttpStatusCodeError(status, body))
     }
   })
+}
+
+/// Adds a list of documents to an index, updating any existing documents with the same primary key
+///
+/// - index_uid: unique identifier of the target index
+/// - documents: list of documents to add or update
+/// - query_params: optional parameters (primary_key, csv_delimiter, custom_metadata, skip_creation)
+/// - encoder: function to encode each document into JSON
+///
+/// Unlike `add_or_replace_documents`, existing fields not present in the new document are preserved.
+/// Set `skip_creation` to `True` in query_params to only update existing documents without creating new ones.
+/// This is an asynchronous operation that returns a task object for progress tracking.
+///
+/// [Meilisearch documentation](https://www.meilisearch.com/docs/reference/api/documents/add-or-update-documents)
+pub fn add_or_update_documents(
+  client: Client,
+  index_uid: String,
+  documents: List(a),
+  query_params: AddDocumentsParams,
+  encoder: fn(a) -> json.Json,
+) -> #(
+  Request(String),
+  fn(Int, String) -> Result(MeilisearchResponse(a), Error),
+) {
+  let body = json.array(documents, encoder) |> json.to_string()
+  let request =
+    create_base_request(client, "indexes/" <> index_uid <> "/documents")
+    |> request.set_method(http.Put)
+    |> request.set_body(body)
+    |> request.set_query(add_documents_params_to_query(query_params))
+  let parser = fn(status: Int, body: String) {
+    case status {
+      202 ->
+        case task_from_json(body) {
+          Ok(task) -> Ok(task)
+          Error(error) -> Error(JsonError(error))
+        }
+      401 | 404 -> Error(meilisearch_error_from_json(body))
+      _ -> Error(UnexpectedHttpStatusCodeError(status, body))
+    }
+  }
+
+  #(request, parser)
+}
+
+/// Query parameters for add_or_replace_documents and add_or_update_documents
+///
+/// - primary_key: field used to identify each document; can only be set on the first document addition
+/// - csv_delimiter: custom delimiter for CSV-formatted input; defaults to comma
+/// - custom_metadata: string used to identify and filter the enqueued task
+/// - skip_creation: when `True`, only updates existing documents and skips creating new ones
+pub type AddDocumentsParams {
+  AddDocumentsParams(
+    primary_key: Option(String),
+    csv_delimiter: Option(String),
+    custom_metadata: Option(String),
+    skip_creation: Option(Bool),
+  )
+}
+
+fn add_documents_params_to_query(
+  params: AddDocumentsParams,
+) -> List(#(String, String)) {
+  let query_params = case params.primary_key {
+    option.Some(value) -> [#("primaryKey", value)]
+    option.None -> []
+  }
+
+  let query_params = case params.csv_delimiter {
+    option.Some(value) -> [#("csvDelimiter", value), ..query_params]
+    option.None -> query_params
+  }
+
+  let query_params = case params.custom_metadata {
+    option.Some(value) -> [#("customMetadata", value), ..query_params]
+    option.None -> query_params
+  }
+
+  let query_params = case params.skip_creation {
+    option.Some(value) -> [
+      #("skipCreation", bool.to_string(value) |> string.lowercase),
+      ..query_params
+    ]
+    option.None -> query_params
+  }
+
+  query_params
 }
 
 /// Retrieves a paginated list of documents from an index using query parameters
@@ -122,8 +213,7 @@ fn documents_params_to_json(parameters: ListDocumentsParams) -> String {
       #("offset", json.int(parameters.offset)),
       #("limit", json.int(parameters.limit)),
       #("fields", case parameters.fields {
-        None -> json.null()
-        All -> json.string("*")
+        None | All -> json.null()
         Ids(ids) -> json.array(ids, json.string)
       }),
       #("retrieveVectors", json.bool(parameters.retrieve_vectors)),

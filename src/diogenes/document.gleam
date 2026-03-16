@@ -9,9 +9,9 @@ import internal/http_tooling.{send_request}
 // - [x] list document with get
 // - [x] list document with post
 // - [x] add or create documents
-// - [ ] add or update documents
+// - [x] add or update documents
 // - [ ] Handle multi format to add or ... csv, ndjson
-// - [ ] Add query paramter to add or ... documents functions
+// - [ ] Add query parameter to add or ... documents functions
 // - [x] get document
 // - [x] delete document
 // - [x] delete all documents
@@ -50,6 +50,7 @@ pub fn get_document(
 ///
 /// - index_uid: unique identifier of the target index
 /// - documents: list of documents to add
+/// - query_params: optional parameters (primary_key, csv_delimiter, custom_metadata, skip_creation)
 /// - encoder: function to encode each document into JSON
 ///
 /// This is an asynchronous operation that returns a task object for progress tracking.
@@ -59,6 +60,7 @@ pub fn add_or_replace_documents(
   client: Client,
   index_uid: String,
   documents: List(document_type),
+  query_params: sansio_document.AddDocumentsParams,
   encoder: fn(document_type) -> json.Json,
 ) -> Result(MeilisearchResponse(document_type), Error) {
   let #(request, parser) =
@@ -66,6 +68,37 @@ pub fn add_or_replace_documents(
       client,
       index_uid,
       documents,
+      query_params,
+      encoder,
+    )
+  send_request(request, [401, 404], parser)
+}
+
+/// Adds a list of documents to an index, updating any existing documents with the same primary key
+///
+/// - index_uid: unique identifier of the target index
+/// - documents: list of documents to add or update
+/// - query_params: optional parameters (primary_key, csv_delimiter, custom_metadata, skip_creation)
+/// - encoder: function to encode each document into JSON
+///
+/// Unlike `add_or_replace_documents`, existing fields not present in the new document are preserved.
+/// Set `skip_creation` to `True` in query_params to only update existing documents without creating new ones.
+/// This is an asynchronous operation that returns a task object for progress tracking.
+///
+/// [Meilisearch documentation](https://www.meilisearch.com/docs/reference/api/documents/add-or-update-documents)
+pub fn add_or_update_documents(
+  client: Client,
+  index_uid: String,
+  documents: List(document_type),
+  query_params: sansio_document.AddDocumentsParams,
+  encoder: fn(document_type) -> json.Json,
+) -> Result(MeilisearchResponse(document_type), Error) {
+  let #(request, parser) =
+    sansio_document.add_or_update_documents(
+      client,
+      index_uid,
+      documents,
+      query_params,
       encoder,
     )
   send_request(request, [401, 404], parser)

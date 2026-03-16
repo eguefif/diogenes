@@ -7,6 +7,23 @@
 You might not be as lost as Diogenes, but it's always good to have a lantern to look for documents, this one is called 
 Meilisearch and Diogenes is your Gleam library that wraps all the HTTP calls for you.
 
+## Progress
+
+| Section | Progress |
+|---|---|
+| Index | 100% |
+| Documents | 85% |
+| Search | 0% |
+| Multi-search | 0% |
+| Facet search | 0% |
+| Similar document search | 0% |
+| Charts | 0% |
+| Tasks | 0% |
+| Batches | 0% |
+| Keys | 0% |
+| Settings | 10% |
+| Management | 0% |
+
 ## Example
 ```gleam
 import diogenes

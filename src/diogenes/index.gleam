@@ -3,12 +3,6 @@ import diogenes/sansio/index as sansio_index
 import gleam/option.{type Option}
 import internal/http_tooling.{send_request}
 
-// TODO:
-// - [x] get index
-// - [x] update index
-// - [x] swap index
-// - [ ] list index fields
-
 /// Creates a Meilisearch index
 ///
 /// - uid: unique index identifier

@@ -1,15 +1,29 @@
 import diogenes.{
-  type Client, type Error, type MeilisearchResponse,
-  UnexpectedHttpStatusCodeError, meilisearch_error_from_json,
-  meilisearch_results_from_json,
+  type Client, type Error, type MeilisearchResponse, JsonError,
+  MeilisearchSingleResult, UnexpectedHttpStatusCodeError,
+  meilisearch_error_from_json, task_parser,
 }
 import gleam/dict.{type Dict}
 import gleam/dynamic/decode
 import gleam/http
 import gleam/http/request.{type Request}
+import gleam/json
 import gleam/option
+import gleam/result
 import internal/http_tooling.{create_base_request}
 
+/// Builds a request to retrieve all settings for the given index.
+///
+/// Returns a tuple of the HTTP request and a parser function.
+/// The parser handles:
+/// - `200` — returns a `MeilisearchSingleResult(Settings)`
+/// - `401` — unauthorized (invalid or missing API key)
+/// - `404` — index not found
+///
+/// ## Example
+/// ```gleam
+/// let #(request, parser) = list_all_settings(client, "movies")
+/// ```
 pub fn list_all_settings(
   client: Client,
   index_uid: String,
@@ -30,17 +44,50 @@ pub fn list_all_settings(
   #(request, parser)
 }
 
+/// Builds a request to update settings for the given index.
+///
+/// Only fields present in `settings` are modified. The operation is
+/// asynchronous — Meilisearch enqueues it and returns a task.
+///
+/// Returns a tuple of the HTTP request and a parser function.
+/// The parser handles:
+/// - `202` — returns a `Task` with the enqueued task details
+/// - `401` — unauthorized (invalid or missing API key)
+/// - `404` — index not found
+///
+/// ## Example
+/// ```gleam
+/// let #(request, parser) = update_all_settings(client, "movies", settings)
+/// ```
+pub fn update_all_settings(
+  client: Client,
+  index_uid: String,
+  settings: Settings,
+) -> #(
+  Request(String),
+  fn(Int, String) -> Result(MeilisearchResponse(task), Error),
+) {
+  let body = settings_list_to_json(settings)
+  let request =
+    create_base_request(client, "/indexes/" <> index_uid <> "/settings")
+    |> request.set_method(http.Patch)
+    |> request.set_header("Content-Type", "application/json")
+    |> request.set_body(body)
+  #(request, task_parser)
+}
+
 pub type Settings {
   Settings(
     displayed_attributes: List(String),
     searchable_attributes: List(String),
     filterable_attributes: List(String),
     sortable_attributes: List(String),
+    foreign_keys: List(ForeignKey),
     ranking_rules: List(RankingRule),
     stop_words: List(String),
     non_separator_tokens: List(String),
     separator_tokens: List(String),
-    dictionnary: List(String),
+    dictionary: List(String),
     synonyms: Dict(String, List(String)),
     distinct_attribute: String,
     proximity_precision: ProximityPrecision,
@@ -53,6 +100,10 @@ pub type Settings {
     facet_search: Bool,
     prefix_search: PrefixSearch,
   )
+}
+
+pub type ForeignKey {
+  ForeignKey(foreign_index_uid: String, field_name: String)
 }
 
 pub type PrefixSearch {
@@ -95,11 +146,21 @@ pub type TypoTolerance {
   )
 }
 
+pub type MinWordSizeForTypo {
+  MinWordSizeForTypo(one_typo: Int, two_typos: Int)
+}
+
 pub type Faceting {
   Faceting(
     max_values_per_facet: Int,
     sort_facet_values_by: Dict(String, SortType),
   )
+}
+
+pub type SortType {
+  Count
+  Alpha
+  UnexpectedSortType
 }
 
 pub type Embedder {
@@ -144,18 +205,8 @@ pub type EmbedderPooling {
   UnexpectedPooling
 }
 
-pub type SortType {
-  Count
-  Alpha
-  UnexpectedSortType
-}
-
 pub type Distribution {
   Distribution(current_mean: Int, current_sigma: Int)
-}
-
-pub type MinWordSizeForTypo {
-  MinWordSizeForTypo(one_typo: Int, two_typos: Int)
 }
 
 //TODO: 
@@ -164,10 +215,14 @@ pub type MinWordSizeForTypo {
 // - [ ] Then create Settings type that gather them all and its decoder
 // - [ ] Filterable: handle object attributes
 
+// Settings decoding function/json --------------------------------------------------------------
+
 fn settings_list_from_json(
   settings: String,
 ) -> Result(MeilisearchResponse(Settings), Error) {
-  meilisearch_results_from_json(settings, decode_settings())
+  json.parse(settings, decode_settings())
+  |> result.map(MeilisearchSingleResult)
+  |> result.map_error(JsonError)
 }
 
 fn decode_settings() -> decode.Decoder(Settings) {
@@ -187,6 +242,10 @@ fn decode_settings() -> decode.Decoder(Settings) {
     "sortableAttributes",
     decode.list(decode.string),
   )
+  use foreign_keys <- decode.field(
+    "foreignKeys",
+    decode.list(decode_foreign_keys()),
+  )
   use ranking_rules <- decode.field(
     "rankingRules",
     decode.list(
@@ -203,7 +262,7 @@ fn decode_settings() -> decode.Decoder(Settings) {
     "separatorTokens",
     decode.list(decode.string),
   )
-  use dictionnary <- decode.field("dictionnary", decode.list(decode.string))
+  use dictionary <- decode.field("dictionary", decode.list(decode.string))
   use synonyms <- decode.field(
     "synonyms",
     decode.dict(decode.string, decode.list(decode.string)),
@@ -227,7 +286,7 @@ fn decode_settings() -> decode.Decoder(Settings) {
   use embedders <- decode.field("embedders", decode_embedder())
   use search_cutoff_ms <- decode.field("searchCutoffMs", decode.int)
   use localized_attribute <- decode.field(
-    "localizedAttribute",
+    "localizedAttributes",
     decode.list(decode_localized_attribute()),
   )
   use facet_search <- decode.field("facetSearch", decode.bool)
@@ -248,11 +307,12 @@ fn decode_settings() -> decode.Decoder(Settings) {
     searchable_attributes:,
     filterable_attributes:,
     sortable_attributes:,
+    foreign_keys:,
     ranking_rules:,
     stop_words:,
     non_separator_tokens:,
     separator_tokens:,
-    dictionnary:,
+    dictionary:,
     synonyms:,
     distinct_attribute:,
     proximity_precision:,
@@ -265,6 +325,91 @@ fn decode_settings() -> decode.Decoder(Settings) {
     facet_search:,
     prefix_search:,
   ))
+}
+
+fn settings_list_to_json(settings: Settings) -> String {
+  let object =
+    json.object([
+      #(
+        "displayedAttributes",
+        json.array(settings.displayed_attributes, json.string),
+      ),
+      #(
+        "searchableAttributes",
+        json.array(settings.searchable_attributes, json.string),
+      ),
+      #(
+        "filterableAttributes",
+        json.array(settings.filterable_attributes, json.string),
+      ),
+      #(
+        "sortableAttributes",
+        json.array(settings.sortable_attributes, json.string),
+      ),
+      #("foreignKeys", json.array(settings.foreign_keys, foreign_key_to_json)),
+      #(
+        "rankingRules",
+        json.array(settings.ranking_rules, ranking_rule_to_json),
+      ),
+      #("stopWords", json.array(settings.stop_words, json.string)),
+      #(
+        "nonSeparatorTokens",
+        json.array(settings.non_separator_tokens, json.string),
+      ),
+      #("separatorTokens", json.array(settings.separator_tokens, json.string)),
+      #("dictionary", json.array(settings.dictionary, json.string)),
+      #(
+        "synonyms",
+        json.dict(settings.synonyms, fn(v) { v }, fn(v) {
+          json.array(v, json.string)
+        }),
+      ),
+      #("distinctAttribute", json.string(settings.distinct_attribute)),
+      #(
+        "proximityPrecision",
+        proximity_precision_to_json(settings.proximity_precision),
+      ),
+      #("typoTolerance", typo_tolerance_to_json(settings.typo_tolerance)),
+
+      #("faceting", faceting_to_json(settings.faceting)),
+      #("pagination", pagination_to_json(settings.pagination)),
+      #("embedders", embedders_to_json(settings.embedders)),
+      #("searchCutoffMs", json.int(settings.search_cutoff_ms)),
+      #(
+        "localizedAttributes",
+        json.array(settings.localized_attribute, localized_attribute_to_json),
+      ),
+      #("facetSearch", json.bool(settings.facet_search)),
+      #("prefixSearch", prefix_search_to_json(settings.prefix_search)),
+    ])
+
+  json.to_string(object)
+}
+
+fn prefix_search_to_json(prefix_search: PrefixSearch) -> json.Json {
+  case prefix_search {
+    IndexTime -> json.string("indexTime")
+    PrefixSearchDisabled -> json.string("disabled")
+    _ -> json.null()
+  }
+}
+
+fn pagination_to_json(pagination: Pagination) -> json.Json {
+  json.object([#("maxTotalHits", json.int(pagination.max_total_hits))])
+}
+
+fn decode_foreign_keys() -> decode.Decoder(ForeignKey) {
+  use foreign_index_uid <- decode.field("foreignIndexUid", decode.string)
+  use field_name <- decode.field("fieldName", decode.string)
+
+  decode.success(ForeignKey(foreign_index_uid:, field_name:))
+}
+
+fn foreign_key_to_json(foreign_key: ForeignKey) -> json.Json {
+  json.object([
+    #("foreignIndexUid", json.string(foreign_key.foreign_index_uid)),
+    #("fieldName", json.string(foreign_key.field_name)),
+  ])
 }
 
 fn decode_localized_attribute() -> decode.Decoder(LocalizedAttribute) {
@@ -283,10 +428,22 @@ fn decode_localized_attribute() -> decode.Decoder(LocalizedAttribute) {
   decode.success(LocalizedAttribute(locales:, attribute_patterns:))
 }
 
+fn localized_attribute_to_json(
+  localized_attribute: LocalizedAttribute,
+) -> json.Json {
+  json.object([
+    #("locales", json.array(localized_attribute.locales, locales_to_json)),
+    #(
+      "attributePatterns",
+      json.array(localized_attribute.attribute_patterns, json.string),
+    ),
+  ])
+}
+
 fn decode_embedder() -> decode.Decoder(Embedder) {
   use <- decode.recursive
   use source <- decode.field(
-    "embedderSource",
+    "source",
     decode.string |> decode.map(decode_source),
   )
   use model <- decode.field("model", decode.string)
@@ -298,7 +455,7 @@ fn decode_embedder() -> decode.Decoder(Embedder) {
   use api_key <- decode.field("apiKey", decode.string)
   use dimensions <- decode.field("dimensions", decode.int)
   use binary_quantisized <- decode.field("binaryQuantisized", decode.bool)
-  use document_template <- decode.field("documenTemplate", decode.string)
+  use document_template <- decode.field("documentTemplate", decode.string)
   use document_template_max_bytes <- decode.field(
     "documentTemplateMaxBytes",
     decode.int,
@@ -324,8 +481,8 @@ fn decode_embedder() -> decode.Decoder(Embedder) {
     "headers",
     decode.dict(decode.string, decode.string),
   )
-  use search_embedders <- decode.field("searchEmbedder", decode_embedder())
-  use indexing_embedders <- decode.field("indexingEmbedder", decode_embedder())
+  use search_embedder <- decode.field("searchEmbedder", decode_embedder())
+  use indexing_embedder <- decode.field("indexingEmbedder", decode_embedder())
   use distribution <- decode.field("distribution", {
     use current_mean <- decode.field("currentMean", decode.int)
     use current_sigma <- decode.field("currentSigma", decode.int)
@@ -348,8 +505,8 @@ fn decode_embedder() -> decode.Decoder(Embedder) {
     request:,
     response:,
     headers:,
-    search_embedders:,
-    indexing_embedders:,
+    search_embedder:,
+    indexing_embedder:,
     distribution:,
   ))
 }
@@ -375,10 +532,84 @@ fn decode_source(value: String) -> EmbedderSource {
   }
 }
 
+fn embedders_to_json(embedder: Embedder) -> json.Json {
+  json.object([
+    #("source", embedder_source_to_json(embedder.source)),
+    #("model", json.string(embedder.model)),
+    #("revision", case embedder.revision {
+      option.Some(revision) -> json.string(revision)
+      option.None -> json.null()
+    }),
+    #("pooling", pooling_to_json(embedder.pooling)),
+    #("apiKey", json.string(embedder.api_key)),
+    #("dimensions", json.int(embedder.dimensions)),
+    #("binaryQuantized", json.bool(embedder.binary_quantisized)),
+    #("documentTemplate", json.string(embedder.document_template)),
+    #(
+      "documentTemplateMaxBytes",
+      json.int(embedder.document_template_max_bytes),
+    ),
+    #("url", json.string(embedder.url)),
+    #(
+      "indexingFragments",
+      json.dict(embedder.indexing_fragments, fn(k) { k }, fn(v) {
+        json.string(v)
+      }),
+    ),
+    #(
+      "searchFragments",
+      json.dict(embedder.search_fragments, fn(k) { k }, fn(v) { json.string(v) }),
+    ),
+    #(
+      "request",
+      json.dict(embedder.request, fn(k) { k }, fn(v) { json.string(v) }),
+    ),
+    #(
+      "response",
+      json.dict(embedder.response, fn(k) { k }, fn(v) { json.string(v) }),
+    ),
+    #(
+      "headers",
+      json.dict(embedder.headers, fn(k) { k }, fn(v) { json.string(v) }),
+    ),
+    #("searchEmbedder", embedders_to_json(embedder.search_embedder)),
+    #("indexingEmbedder", embedders_to_json(embedder.indexing_embedder)),
+    #("distribution", distribution_to_json(embedder.distribution)),
+  ])
+}
+
+fn pooling_to_json(pooling: EmbedderPooling) -> json.Json {
+  case pooling {
+    UseModel -> json.string("useModel")
+    ForceCls -> json.string("forceCls")
+    ForceMean -> json.string("forceMean")
+    UnexpectedPooling -> json.null()
+  }
+}
+
+fn embedder_source_to_json(source: EmbedderSource) -> json.Json {
+  case source {
+    OpenAi -> json.string("openAi")
+    HuggingFace -> json.string("huggingFace")
+    Ollama -> json.string("ollama")
+    Rest -> json.string("rest")
+    Composite -> json.string("composite")
+    UserProvided -> json.string("userProvided")
+    UnexpectedSource -> json.null()
+  }
+}
+
+fn distribution_to_json(distribution: Distribution) -> json.Json {
+  json.object([
+    #("currentMean", json.int(distribution.current_mean)),
+    #("currentSigma", json.int(distribution.current_sigma)),
+  ])
+}
+
 fn decode_faceting() -> decode.Decoder(Faceting) {
   use max_values_per_facet <- decode.field("maxValuesPerFacet", decode.int)
   use sort_facet_values_by <- decode.field(
-    "sortFacetValueBy",
+    "sortFacetValuesBy",
     decode.dict(
       decode.string,
       decode.string
@@ -394,11 +625,28 @@ fn decode_faceting() -> decode.Decoder(Faceting) {
   decode.success(Faceting(max_values_per_facet:, sort_facet_values_by:))
 }
 
+fn faceting_to_json(faceting: Faceting) -> json.Json {
+  json.object([
+    #("maxValuesPerFacet", json.int(faceting.max_values_per_facet)),
+    #(
+      "sortFacetValuesBy",
+      json.dict(faceting.sort_facet_values_by, fn(k) { k }, fn(v) {
+        case v {
+          Count -> json.string("count")
+          Alpha -> json.string("alpha")
+          UnexpectedSortType -> json.null()
+        }
+      }),
+    ),
+  ])
+}
+
 fn ranking_rule_from_string(ranking_rule: String) -> RankingRule {
   case ranking_rule {
     "words" -> Words
-    "type" -> Typo
+    "typo" -> Typo
     "proximity" -> Proximity
+    "attribute" -> AttributeRank
     "sort" -> Sort
     "wordPosition" -> WordPosition
     "exactness" -> Exactness
@@ -406,18 +654,18 @@ fn ranking_rule_from_string(ranking_rule: String) -> RankingRule {
   }
 }
 
-//fn ranking_rule_to_string(ranking_rule: RankingRule) -> String {
-//  case ranking_rule {
-//    Words -> "words"
-//    Typo -> "typo"
-//    Proximity -> "proximity"
-//    AttributeRank -> "attributeRank"
-//    Sort -> "sort"
-//    WordPosition -> "wordPosition"
-//    Exactness -> "exacteness"
-//    UnexpectedRule -> ""
-//  }
-//}
+fn ranking_rule_to_json(ranking_rule: RankingRule) -> json.Json {
+  case ranking_rule {
+    Words -> json.string("words")
+    Typo -> json.string("typo")
+    Proximity -> json.string("proximity")
+    AttributeRank -> json.string("attribute")
+    Sort -> json.string("sort")
+    WordPosition -> json.string("wordPosition")
+    Exactness -> json.string("exactness")
+    UnexpectedRule -> json.null()
+  }
+}
 
 fn proximity_precision_from_string(
   proximity_precision: String,
@@ -429,21 +677,21 @@ fn proximity_precision_from_string(
   }
 }
 
-//fn proximity_precision_to_string(
-//  proximity_precision: ProximityPrecision,
-//) -> String {
-//  case proximity_precision {
-//    ByWord -> "byWord"
-//    ByAttribute -> "byAttribute"
-//    UnexpectedProximityPrecision -> ""
-//  }
-//}
+fn proximity_precision_to_json(
+  proximity_precision: ProximityPrecision,
+) -> json.Json {
+  case proximity_precision {
+    ByWord -> json.string("byWord")
+    ByAttribute -> json.string("byAttribute")
+    UnexpectedProximityPrecision -> json.null()
+  }
+}
 
 fn decode_typo_tolerance_decoder() -> decode.Decoder(TypoTolerance) {
   {
     use enabled <- decode.field("enabled", decode.bool)
     use min_word_size_for_typo <- decode.field(
-      "minWordSizeForTypo",
+      "minWordSizeForTypos",
       min_word_size_for_typo_decoder(),
     )
     use disable_on_words <- decode.field(
@@ -462,6 +710,27 @@ fn decode_typo_tolerance_decoder() -> decode.Decoder(TypoTolerance) {
       disable_on_attributes:,
     ))
   }
+}
+
+fn typo_tolerance_to_json(typo_tolerance: TypoTolerance) -> json.Json {
+  json.object([
+    #("enabled", json.bool(typo_tolerance.enabled)),
+    #(
+      "minWordSizeForTypos",
+      json.object([
+        #("oneTypo", json.int(typo_tolerance.min_word_size_for_typo.one_typo)),
+        #("twoTypos", json.int(typo_tolerance.min_word_size_for_typo.two_typos)),
+      ]),
+    ),
+    #(
+      "disableOnWords",
+      json.array(typo_tolerance.disable_on_words, json.string),
+    ),
+    #(
+      "disableOnAttributes",
+      json.array(typo_tolerance.disable_on_attributes, json.string),
+    ),
+  ])
 }
 
 fn min_word_size_for_typo_decoder() -> decode.Decoder(MinWordSizeForTypo) {
@@ -616,8 +885,8 @@ pub type Locales {
   UnexpectedLocal
 }
 
-pub fn locales_to_string(locale: Locales) -> String {
-  case locale {
+pub fn locales_to_json(locale: Locales) -> json.Json {
+  let local_string = case locale {
     Af -> "af"
     Ak -> "ak"
     Am -> "am"
@@ -759,6 +1028,7 @@ pub fn locales_to_string(locale: Locales) -> String {
     Cmn -> "cmn"
     UnexpectedLocal -> ""
   }
+  json.string(local_string)
 }
 
 fn locales_from_string(value: String) -> Locales {

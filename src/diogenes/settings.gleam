@@ -14,8 +14,8 @@
 //// - [x] Stop words - `/indexes/{indexUid}/settings/stop-words`
 //// - [x] Synonyms - `/indexes/{indexUid}/settings/synonyms`
 //// - [x] Distinct attribute - `/indexes/{indexUid}/settings/distinct-attribute`
-//// - [ ] Typo tolerance - `/indexes/{indexUid}/settings/typo-tolerance`
-//// - [ ] Faceting - `/indexes/{indexUid}/settings/faceting`
+//// - [x] Typo tolerance - `/indexes/{indexUid}/settings/typo-tolerance`
+//// - [x] Faceting - `/indexes/{indexUid}/settings/faceting`
 //// - [ ] Pagination - `/indexes/{indexUid}/settings/pagination`
 //// - [x] Dictionary - `/indexes/{indexUid}/settings/dictionary`
 //// - [x] Separator tokens - `/indexes/{indexUid}/settings/separator-tokens`
@@ -842,6 +842,126 @@ pub fn reset_search_cutoff_ms(
 /// let assert Ok(MeilisearchSingleResult(synonyms)) =
 ///   get_synonyms(client, "movies")
 /// ```
+/// Retrieves the typo tolerance setting for the given index.
+///
+/// On success returns `Ok(MeilisearchSingleResult(TypoTolerance))`.
+/// Errors include `MeilisearchError` for 401/404 responses and
+/// `TransportError` for network failures.
+///
+/// ## Example
+/// ```gleam
+/// let assert Ok(MeilisearchSingleResult(typo_tolerance)) =
+///   get_typo_tolerance(client, "movies")
+/// ```
+/// Retrieves the faceting setting for the given index.
+///
+/// On success returns `Ok(MeilisearchSingleResult(Faceting))`.
+/// Errors include `MeilisearchError` for 401/404 responses and
+/// `TransportError` for network failures.
+///
+/// ## Example
+/// ```gleam
+/// let assert Ok(MeilisearchSingleResult(faceting)) =
+///   get_faceting(client, "movies")
+/// ```
+pub fn get_faceting(
+  client: Client,
+  index_uid: String,
+) -> Result(MeilisearchResponse(sansio_settings.Faceting), Error) {
+  let #(request, parser) = sansio_settings.get_faceting(client, index_uid)
+  send_request(request, [401, 404], parser)
+}
+
+/// Updates the faceting setting for the given index.
+///
+/// The operation is asynchronous — Meilisearch enqueues it and returns a `Task`.
+///
+/// On success returns `Ok(Task(...))`.
+///
+/// ## Example
+/// ```gleam
+/// let assert Ok(Task(task_uid: uid, ..)) =
+///   update_faceting(client, "movies", faceting)
+/// ```
+pub fn update_faceting(
+  client: Client,
+  index_uid: String,
+  faceting: sansio_settings.Faceting,
+) -> Result(MeilisearchResponse(task), Error) {
+  let #(request, parser) =
+    sansio_settings.update_faceting(client, index_uid, faceting)
+  send_request(request, [401, 404], parser)
+}
+
+/// Resets the faceting setting for the given index to its default value.
+///
+/// The operation is asynchronous — Meilisearch enqueues it and returns a `Task`.
+///
+/// On success returns `Ok(Task(...))`.
+///
+/// ## Example
+/// ```gleam
+/// let assert Ok(Task(task_uid: uid, ..)) =
+///   reset_faceting(client, "movies")
+/// ```
+pub fn reset_faceting(
+  client: Client,
+  index_uid: String,
+) -> Result(MeilisearchResponse(task), Error) {
+  let #(request, parser) = sansio_settings.reset_faceting(client, index_uid)
+  send_request(request, [401, 404], parser)
+}
+
+pub fn get_typo_tolerance(
+  client: Client,
+  index_uid: String,
+) -> Result(MeilisearchResponse(sansio_settings.TypoTolerance), Error) {
+  let #(request, parser) =
+    sansio_settings.get_typo_tolerance(client, index_uid)
+  send_request(request, [401, 404], parser)
+}
+
+/// Updates the typo tolerance setting for the given index.
+///
+/// The operation is asynchronous — Meilisearch enqueues it and returns a `Task`.
+///
+/// On success returns `Ok(Task(...))`.
+///
+/// ## Example
+/// ```gleam
+/// let assert Ok(Task(task_uid: uid, ..)) =
+///   update_typo_tolerance(client, "movies", typo_tolerance)
+/// ```
+pub fn update_typo_tolerance(
+  client: Client,
+  index_uid: String,
+  typo_tolerance: sansio_settings.TypoTolerance,
+) -> Result(MeilisearchResponse(task), Error) {
+  let #(request, parser) =
+    sansio_settings.update_typo_tolerance(client, index_uid, typo_tolerance)
+  send_request(request, [401, 404], parser)
+}
+
+/// Resets the typo tolerance setting for the given index to its default value.
+///
+/// The operation is asynchronous — Meilisearch enqueues it and returns a `Task`.
+///
+/// On success returns `Ok(Task(...))`.
+///
+/// ## Example
+/// ```gleam
+/// let assert Ok(Task(task_uid: uid, ..)) =
+///   reset_typo_tolerance(client, "movies")
+/// ```
+pub fn reset_typo_tolerance(
+  client: Client,
+  index_uid: String,
+) -> Result(MeilisearchResponse(task), Error) {
+  let #(request, parser) =
+    sansio_settings.reset_typo_tolerance(client, index_uid)
+  send_request(request, [401, 404], parser)
+}
+
 pub fn get_synonyms(
   client: Client,
   index_uid: String,

@@ -1,7 +1,7 @@
 import diogenes.{
   type Client, type Error, type MeilisearchResponse, JsonError,
   MeilisearchSingleResult, UnexpectedHttpStatusCodeError,
-  meilisearch_error_from_json, meilisearch_results_from_json, task_from_json,
+  meilisearch_error_from_json, meilisearch_results_from_json, task_parser,
 }
 import gleam/dynamic/decode
 import gleam/http
@@ -111,18 +111,7 @@ pub fn create_index(
     |> request.set_method(http.Post)
     |> request.set_header("Content-Type", "application/json")
 
-  let parser = fn(status: Int, body: String) {
-    case status {
-      202 ->
-        case task_from_json(body) {
-          Ok(task) -> Ok(task)
-          Error(err) -> Error(JsonError(err))
-        }
-      401 -> Error(meilisearch_error_from_json(body))
-      _ -> Error(UnexpectedHttpStatusCodeError(status, body))
-    }
-  }
-  #(request, parser)
+  #(request, task_parser)
 }
 
 fn index_creation_to_json(idx: Index) -> json.Json {
@@ -165,18 +154,7 @@ pub fn update_index(
     |> request.set_body(body)
     |> request.set_method(http.Patch)
 
-  let parser = fn(status: Int, body: String) {
-    case status {
-      202 ->
-        case task_from_json(body) {
-          Ok(task) -> Ok(task)
-          Error(err) -> Error(JsonError(err))
-        }
-      401 -> Error(meilisearch_error_from_json(body))
-      _ -> Error(UnexpectedHttpStatusCodeError(status, body))
-    }
-  }
-  #(request, parser)
+  #(request, task_parser)
 }
 
 fn index_update_to_json(idx: Index) -> json.Json {
@@ -242,19 +220,7 @@ pub fn delete_index(
     create_base_request(client, "/indexes/" <> uid)
     |> request.set_method(http.Delete)
 
-  let parser = fn(status: Int, body: String) {
-    case status {
-      202 ->
-        case task_from_json(body) {
-          Ok(task) -> Ok(task)
-          Error(err) -> Error(JsonError(err))
-        }
-      401 -> Error(meilisearch_error_from_json(body))
-      404 -> Error(meilisearch_error_from_json(body))
-      _ -> Error(UnexpectedHttpStatusCodeError(status, body))
-    }
-  }
-  #(request, parser)
+  #(request, task_parser)
 }
 
 //fn index_creation_from_json(
@@ -343,18 +309,7 @@ pub fn swap_index(
     |> request.set_method(http.Post)
     |> request.set_header("Content-Type", "application/json")
     |> request.set_body(body)
-  let parser = fn(status: Int, body: String) {
-    case status {
-      202 ->
-        case task_from_json(body) {
-          Ok(task) -> Ok(task)
-          Error(err) -> Error(JsonError(err))
-        }
-      401 -> Error(meilisearch_error_from_json(body))
-      _ -> Error(UnexpectedHttpStatusCodeError(status, body))
-    }
-  }
-  #(request, parser)
+  #(request, task_parser)
 }
 
 fn index_pair_swap_to_json(pairs: Index) -> json.Json {

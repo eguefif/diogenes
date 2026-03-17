@@ -1,8 +1,7 @@
 import diogenes.{
   type Client, type Error, type MeilisearchResponse, JsonError,
   MeilisearchSingleResult, UnexpectedHttpStatusCodeError,
-  meilisearch_error_from_json, meilisearch_results_from_json, task_from_json,
-  task_parser,
+  meilisearch_error_from_json, meilisearch_results_from_json, task_parser,
 }
 import gleam/bool
 import gleam/dynamic/decode
@@ -41,18 +40,7 @@ pub fn add_or_replace_documents(
     |> request.set_body(body)
     |> request.set_query(add_documents_params_to_query(query_params))
 
-  #(request, fn(status: Int, body: String) {
-    case status {
-      202 -> {
-        case task_from_json(body) {
-          Ok(response) -> Ok(response)
-          Error(error) -> Error(JsonError(error))
-        }
-      }
-      401 | 404 -> Error(meilisearch_error_from_json(body))
-      _ -> Error(UnexpectedHttpStatusCodeError(status, body))
-    }
-  })
+  #(request, task_parser)
 }
 
 /// Adds a list of documents to an index, updating any existing documents with the same primary key
@@ -83,19 +71,7 @@ pub fn add_or_update_documents(
     |> request.set_method(http.Put)
     |> request.set_body(body)
     |> request.set_query(add_documents_params_to_query(query_params))
-  let parser = fn(status: Int, body: String) {
-    case status {
-      202 ->
-        case task_from_json(body) {
-          Ok(task) -> Ok(task)
-          Error(error) -> Error(JsonError(error))
-        }
-      401 | 404 -> Error(meilisearch_error_from_json(body))
-      _ -> Error(UnexpectedHttpStatusCodeError(status, body))
-    }
-  }
-
-  #(request, parser)
+  #(request, task_parser)
 }
 
 /// Query parameters for add_or_replace_documents and add_or_update_documents
@@ -372,18 +348,7 @@ pub fn delete_all_documents(
   let request =
     create_base_request(client, "/indexes/" <> index_uid <> "/documents")
     |> request.set_method(http.Delete)
-  let parser = fn(status: Int, body: String) {
-    case status {
-      202 ->
-        case task_from_json(body) {
-          Ok(task) -> Ok(task)
-          Error(error) -> Error(JsonError(error))
-        }
-      401 | 404 -> Error(meilisearch_error_from_json(body))
-      _ -> Error(UnexpectedHttpStatusCodeError(status, body))
-    }
-  }
-  #(request, parser)
+  #(request, task_parser)
 }
 
 /// Deletes a single document from an index using its primary key
@@ -408,18 +373,7 @@ pub fn delete_document(
       "/indexes/" <> index_uid <> "/documents/" <> primary_key,
     )
     |> request.set_method(http.Delete)
-  let parser = fn(status: Int, body: String) {
-    case status {
-      202 ->
-        case task_from_json(body) {
-          Ok(task) -> Ok(task)
-          Error(error) -> Error(JsonError(error))
-        }
-      401 | 404 -> Error(meilisearch_error_from_json(body))
-      _ -> Error(UnexpectedHttpStatusCodeError(status, body))
-    }
-  }
-  #(request, parser)
+  #(request, task_parser)
 }
 
 /// Deletes all documents matching the given filter expression
@@ -443,18 +397,7 @@ pub fn delete_documents_by_filter(
     create_base_request(client, "/indexes/" <> index_uid <> "/documents/delete")
     |> request.set_method(http.Post)
     |> request.set_body(body)
-  let parser = fn(status: Int, body: String) {
-    case status {
-      202 ->
-        case task_from_json(body) {
-          Ok(task) -> Ok(task)
-          Error(error) -> Error(JsonError(error))
-        }
-      401 | 404 -> Error(meilisearch_error_from_json(body))
-      _ -> Error(UnexpectedHttpStatusCodeError(status, body))
-    }
-  }
-  #(request, parser)
+  #(request, task_parser)
 }
 
 /// Deletes multiple documents in one request by providing a list of primary key values

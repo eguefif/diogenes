@@ -306,3 +306,69 @@ pub fn reset_displayed_attributes(
     sansio_settings.reset_displayed_attributes(client, index_uid)
   send_request(request, [401, 404], parser)
 }
+
+/// Retrieves the filterable attributes setting for the given index.
+///
+/// Filterable attributes are the fields that can be used in filter expressions
+/// during search.
+///
+/// On success returns `Ok(MeilisearchSingleResult(List(String)))`.
+/// Errors include `MeilisearchError` for 401/404 responses and
+/// `TransportError` for network failures.
+///
+/// ## Example
+/// ```gleam
+/// let assert Ok(MeilisearchSingleResult(attributes)) =
+///   get_filterable_attributes(client, "movies")
+/// ```
+pub fn get_filterable_attributes(
+  client: Client,
+  index_uid: String,
+) -> Result(MeilisearchResponse(List(String)), Error) {
+  let #(request, parser) =
+    sansio_settings.get_filterable_attributes(client, index_uid)
+  send_request(request, [401, 404], parser)
+}
+
+/// Updates the filterable attributes setting for the given index.
+///
+/// Filterable attributes are the fields that can be used in filter expressions
+/// during search. The operation is asynchronous — Meilisearch enqueues it and
+/// returns a `Task`.
+///
+/// On success returns `Ok(Task(...))`.
+///
+/// ## Example
+/// ```gleam
+/// let assert Ok(Task(task_uid: uid, ..)) =
+///   update_filterable_attributes(client, "movies", ["genre", "year"])
+/// ```
+pub fn update_filterable_attributes(
+  client: Client,
+  index_uid: String,
+  attributes: List(String),
+) -> Result(MeilisearchResponse(task), Error) {
+  let #(request, parser) =
+    sansio_settings.update_filterable_attributes(client, index_uid, attributes)
+  send_request(request, [401, 404], parser)
+}
+
+/// Resets the filterable attributes setting for the given index to its default value.
+///
+/// The operation is asynchronous — Meilisearch enqueues it and returns a `Task`.
+///
+/// On success returns `Ok(Task(...))`.
+///
+/// ## Example
+/// ```gleam
+/// let assert Ok(Task(task_uid: uid, ..)) =
+///   reset_filterable_attributes(client, "movies")
+/// ```
+pub fn reset_filterable_attributes(
+  client: Client,
+  index_uid: String,
+) -> Result(MeilisearchResponse(task), Error) {
+  let #(request, parser) =
+    sansio_settings.reset_filterable_attributes(client, index_uid)
+  send_request(request, [401, 404], parser)
+}

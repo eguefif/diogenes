@@ -1220,6 +1220,109 @@ pub fn reset_search_cutoff_ms(
   #(request, task_parser)
 }
 
+/// Builds a request to retrieve the facet search setting for the given index.
+///
+/// Returns a tuple of the HTTP request and a parser function.
+/// The parser handles:
+/// - `200` — returns a `MeilisearchSingleResult(Bool)`
+/// - `401` — unauthorized (invalid or missing API key)
+/// - `404` — index not found
+///
+/// ## Example
+/// ```gleam
+/// let #(request, parser) = get_facet_search(client, "movies")
+/// ```
+pub fn get_facet_search(
+  client: Client,
+  index_uid: String,
+) -> #(
+  Request(String),
+  fn(Int, String) -> Result(MeilisearchResponse(Bool), Error),
+) {
+  let request =
+    create_base_request(
+      client,
+      "/indexes/" <> index_uid <> "/settings/facet-search",
+    )
+    |> request.set_method(http.Get)
+  let parser = fn(status: Int, body: String) {
+    case status {
+      200 ->
+        case json.parse(body, decode.bool) {
+          Ok(enabled) -> Ok(MeilisearchSingleResult(enabled))
+          Error(error) -> Error(JsonError(error))
+        }
+      401 | 404 -> Error(meilisearch_error_from_json(body))
+      _ -> Error(UnexpectedHttpStatusCodeError(status, body))
+    }
+  }
+  #(request, parser)
+}
+
+/// Builds a request to update the facet search setting for the given index.
+///
+/// The operation is asynchronous — Meilisearch enqueues it and returns a task.
+///
+/// Returns a tuple of the HTTP request and a parser function.
+/// The parser handles:
+/// - `202` — returns a `Task` with the enqueued task details
+/// - `401` — unauthorized (invalid or missing API key)
+/// - `404` — index not found
+///
+/// ## Example
+/// ```gleam
+/// let #(request, parser) = update_facet_search(client, "movies", True)
+/// ```
+pub fn update_facet_search(
+  client: Client,
+  index_uid: String,
+  facet_search: Bool,
+) -> #(
+  Request(String),
+  fn(Int, String) -> Result(MeilisearchResponse(a), Error),
+) {
+  let body = json.bool(facet_search) |> json.to_string
+  let request =
+    create_base_request(
+      client,
+      "/indexes/" <> index_uid <> "/settings/facet-search",
+    )
+    |> request.set_method(http.Put)
+    |> request.set_header("Content-Type", "application/json")
+    |> request.set_body(body)
+  #(request, task_parser)
+}
+
+/// Builds a request to reset the facet search setting for the given index to its default value.
+///
+/// The operation is asynchronous — Meilisearch enqueues it and returns a task.
+///
+/// Returns a tuple of the HTTP request and a parser function.
+/// The parser handles:
+/// - `202` — returns a `Task` with the enqueued task details
+/// - `401` — unauthorized (invalid or missing API key)
+/// - `404` — index not found
+///
+/// ## Example
+/// ```gleam
+/// let #(request, parser) = reset_facet_search(client, "movies")
+/// ```
+pub fn reset_facet_search(
+  client: Client,
+  index_uid: String,
+) -> #(
+  Request(String),
+  fn(Int, String) -> Result(MeilisearchResponse(a), Error),
+) {
+  let request =
+    create_base_request(
+      client,
+      "/indexes/" <> index_uid <> "/settings/facet-search",
+    )
+    |> request.set_method(http.Delete)
+  #(request, task_parser)
+}
+
 // Types ---------------------------------------------------------------------------------------------
 
 pub type Settings {

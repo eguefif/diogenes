@@ -70,7 +70,7 @@ Further documentation can be found at <https://hexdocs.pm/diogenes>.
 ### Progress toward V1
 | Section | Progress | Items Count |
 |---|---| --- |
-| Overall | 47% | 45.5/97 |
+| Overall | 53% | 51.5/97 |
 | --- | --- | --- |
 | Index | 100% | 7/7 | 
 | Documents | 85% | 8.5/10 |
@@ -78,7 +78,7 @@ Further documentation can be found at <https://hexdocs.pm/diogenes>.
 | Multi-search | 0% | 0/1 |
 | Facet search | 0% | 0/1 |
 | Similar document search | 0% | 0/2 |
-| Settings | 40% | 30/69 |
+| Settings | 40% | 36/69 |
 | Keys | 0% | 0/5 |
 
 ### Roadmap

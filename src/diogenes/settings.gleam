@@ -24,7 +24,7 @@
 //// - [ ] Embedders - `/indexes/{indexUid}/settings/embedders`
 //// - [ ] Proximity precision - `/indexes/{indexUid}/settings/proximity-precision`
 //// - [x] Search cutoff ms - `/indexes/{indexUid}/settings/search-cutoff-ms`
-//// - [ ] Facet search - `/indexes/{indexUid}/settings/facet-search`
+//// - [x] Facet search - `/indexes/{indexUid}/settings/facet-search`
 //// - [ ] Prefix search - `/indexes/{indexUid}/settings/prefix-search`
 //// - [x] Chat - `/indexes/{indexUid}/settings/chat`
 
@@ -805,5 +805,65 @@ pub fn reset_search_cutoff_ms(
 ) -> Result(MeilisearchResponse(task), Error) {
   let #(request, parser) =
     sansio_settings.reset_search_cutoff_ms(client, index_uid)
+  send_request(request, [401, 404], parser)
+}
+
+/// Retrieves the facet search setting for the given index.
+///
+/// On success returns `Ok(MeilisearchSingleResult(Bool))`.
+/// Errors include `MeilisearchError` for 401/404 responses and
+/// `TransportError` for network failures.
+///
+/// ## Example
+/// ```gleam
+/// let assert Ok(MeilisearchSingleResult(enabled)) =
+///   get_facet_search(client, "movies")
+/// ```
+pub fn get_facet_search(
+  client: Client,
+  index_uid: String,
+) -> Result(MeilisearchResponse(Bool), Error) {
+  let #(request, parser) = sansio_settings.get_facet_search(client, index_uid)
+  send_request(request, [401, 404], parser)
+}
+
+/// Updates the facet search setting for the given index.
+///
+/// The operation is asynchronous — Meilisearch enqueues it and returns a `Task`.
+///
+/// On success returns `Ok(Task(...))`..
+///
+/// ## Example
+/// ```gleam
+/// let assert Ok(Task(task_uid: uid, ..)) =
+///   update_facet_search(client, "movies", True)
+/// ```
+pub fn update_facet_search(
+  client: Client,
+  index_uid: String,
+  facet_search: Bool,
+) -> Result(MeilisearchResponse(task), Error) {
+  let #(request, parser) =
+    sansio_settings.update_facet_search(client, index_uid, facet_search)
+  send_request(request, [401, 404], parser)
+}
+
+/// Resets the facet search setting for the given index to its default value.
+///
+/// The operation is asynchronous — Meilisearch enqueues it and returns a `Task`.
+///
+/// On success returns `Ok(Task(...))`..
+///
+/// ## Example
+/// ```gleam
+/// let assert Ok(Task(task_uid: uid, ..)) =
+///   reset_facet_search(client, "movies")
+/// ```
+pub fn reset_facet_search(
+  client: Client,
+  index_uid: String,
+) -> Result(MeilisearchResponse(task), Error) {
+  let #(request, parser) =
+    sansio_settings.reset_facet_search(client, index_uid)
   send_request(request, [401, 404], parser)
 }

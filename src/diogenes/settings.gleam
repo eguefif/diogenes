@@ -10,7 +10,7 @@
 //// - [x] Searchable attributes - `/indexes/{indexUid}/settings/searchable-attributes`
 //// - [x] Filterable attributes - `/indexes/{indexUid}/settings/filterable-attributes`
 //// - [x] Sortable attributes - `/indexes/{indexUid}/settings/sortable-attributes`
-//// - [ ] Ranking rules - `/indexes/{indexUid}/settings/ranking-rules`
+//// - [x] Ranking rules - `/indexes/{indexUid}/settings/ranking-rules`
 //// - [x] Stop words - `/indexes/{indexUid}/settings/stop-words`
 //// - [ ] Synonyms - `/indexes/{indexUid}/settings/synonyms`
 //// - [ ] Distinct attribute - `/indexes/{indexUid}/settings/distinct-attribute`
@@ -602,8 +602,7 @@ pub fn reset_stop_words(
   client: Client,
   index_uid: String,
 ) -> Result(MeilisearchResponse(task), Error) {
-  let #(request, parser) =
-    sansio_settings.reset_stop_words(client, index_uid)
+  let #(request, parser) = sansio_settings.reset_stop_words(client, index_uid)
   send_request(request, [401, 404], parser)
 }
 
@@ -670,5 +669,72 @@ pub fn reset_filterable_attributes(
 ) -> Result(MeilisearchResponse(task), Error) {
   let #(request, parser) =
     sansio_settings.reset_filterable_attributes(client, index_uid)
+  send_request(request, [401, 404], parser)
+}
+
+/// Retrieves the ranking rules for the given index.
+///
+/// Ranking rules determine the order in which Meilisearch returns search results.
+/// The default ranking rules are: `Words`, `Typo`, `Proximity`, `AttributeRank`,
+/// `Sort`, `WordPosition`, `Exactness`.
+///
+/// On success returns `Ok(MeilisearchSingleResult(List(RankingRule)))`.
+/// Errors include `MeilisearchError` for 401/404 responses and
+/// `TransportError` for network failures.
+///
+/// ## Example
+/// ```gleam
+/// let assert Ok(MeilisearchSingleResult(rules)) =
+///   get_ranking_rules(client, "movies")
+/// ```
+pub fn get_ranking_rules(
+  client: Client,
+  index_uid: String,
+) -> Result(MeilisearchResponse(List(sansio_settings.RankingRule)), Error) {
+  let #(request, parser) = sansio_settings.get_ranking_rules(client, index_uid)
+  send_request(request, [401, 404], parser)
+}
+
+/// Updates the ranking rules for the given index.
+///
+/// Ranking rules determine the order in which Meilisearch returns search results.
+/// The operation is asynchronous — Meilisearch enqueues it and returns a `Task`.
+///
+/// On success returns `Ok(Task(...))`.
+///
+/// ## Example
+/// ```gleam
+/// let assert Ok(Task(task_uid: uid, ..)) =
+///   update_ranking_rules(client, "movies", [Words, Typo, Proximity, AttributeRank, Sort, Exactness])
+/// ```
+pub fn update_ranking_rules(
+  client: Client,
+  index_uid: String,
+  ranking_rules: List(sansio_settings.RankingRule),
+) -> Result(MeilisearchResponse(task), Error) {
+  let #(request, parser) =
+    sansio_settings.update_ranking_rules(client, index_uid, ranking_rules)
+  send_request(request, [401, 404], parser)
+}
+
+/// Resets the ranking rules for the given index to their default values.
+///
+/// The default ranking rules are: `Words`, `Typo`, `Proximity`, `AttributeRank`,
+/// `Sort`, `WordPosition`, `Exactness`.
+/// The operation is asynchronous — Meilisearch enqueues it and returns a `Task`.
+///
+/// On success returns `Ok(Task(...))`.
+///
+/// ## Example
+/// ```gleam
+/// let assert Ok(Task(task_uid: uid, ..)) =
+///   reset_ranking_rules(client, "movies")
+/// ```
+pub fn reset_ranking_rules(
+  client: Client,
+  index_uid: String,
+) -> Result(MeilisearchResponse(task), Error) {
+  let #(request, parser) =
+    sansio_settings.reset_ranking_rules(client, index_uid)
   send_request(request, [401, 404], parser)
 }

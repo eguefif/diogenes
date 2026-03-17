@@ -1046,6 +1046,118 @@ pub fn reset_filterable_attributes(
   #(request, task_parser)
 }
 
+/// Builds a request to retrieve the ranking rules for the given index.
+///
+/// Ranking rules determine the order in which Meilisearch returns search results.
+/// The default ranking rules are: `Words`, `Typo`, `Proximity`, `AttributeRank`,
+/// `Sort`, `WordPosition`, `Exactness`.
+///
+/// Returns a tuple of the HTTP request and a parser function.
+/// The parser handles:
+/// - `200` — returns a `MeilisearchSingleResult(List(RankingRule))`
+/// - `401` — unauthorized (invalid or missing API key)
+/// - `404` — index not found
+///
+/// ## Example
+/// ```gleam
+/// let #(request, parser) = get_ranking_rules(client, "movies")
+/// ```
+pub fn get_ranking_rules(
+  client: Client,
+  index_uid: String,
+) -> #(
+  Request(String),
+  fn(Int, String) -> Result(MeilisearchResponse(List(RankingRule)), Error),
+) {
+  let request =
+    create_base_request(
+      client,
+      "/indexes/" <> index_uid <> "/settings/ranking-rules",
+    )
+    |> request.set_method(http.Get)
+  let parser = fn(status: Int, body: String) {
+    case status {
+      200 ->
+        case json.parse(body, decode_ranking_rules()) {
+          Ok(ranking_rules) -> Ok(MeilisearchSingleResult(ranking_rules))
+          Error(error) -> Error(JsonError(error))
+        }
+      401 | 404 -> Error(meilisearch_error_from_json(body))
+      _ -> Error(UnexpectedHttpStatusCodeError(status, body))
+    }
+  }
+
+  #(request, parser)
+}
+
+/// Builds a request to update the ranking rules for the given index.
+///
+/// Ranking rules determine the order in which Meilisearch returns search results.
+/// The operation is asynchronous — Meilisearch enqueues it and returns a task.
+///
+/// Returns a tuple of the HTTP request and a parser function.
+/// The parser handles:
+/// - `202` — returns a `Task` with the enqueued task details
+/// - `401` — unauthorized (invalid or missing API key)
+/// - `404` — index not found
+///
+/// ## Example
+/// ```gleam
+/// let #(request, parser) =
+///   update_ranking_rules(client, "movies", [Words, Typo, Proximity, AttributeRank, Sort, Exactness])
+/// ```
+pub fn update_ranking_rules(
+  client: Client,
+  index_uid: String,
+  ranking_rules: List(RankingRule),
+) -> #(
+  Request(String),
+  fn(Int, String) -> Result(MeilisearchResponse(a), Error),
+) {
+  let body = json.array(ranking_rules, ranking_rule_to_json) |> json.to_string
+  let request =
+    create_base_request(
+      client,
+      "/indexes/" <> index_uid <> "/settings/ranking-rules",
+    )
+    |> request.set_method(http.Put)
+    |> request.set_header("Content-Type", "application/json")
+    |> request.set_body(body)
+  #(request, task_parser)
+}
+
+/// Builds a request to reset the ranking rules for the given index to their default values.
+///
+/// The default ranking rules are: `Words`, `Typo`, `Proximity`, `AttributeRank`,
+/// `Sort`, `WordPosition`, `Exactness`.
+/// The operation is asynchronous — Meilisearch enqueues it and returns a task.
+///
+/// Returns a tuple of the HTTP request and a parser function.
+/// The parser handles:
+/// - `202` — returns a `Task` with the enqueued task details
+/// - `401` — unauthorized (invalid or missing API key)
+/// - `404` — index not found
+///
+/// ## Example
+/// ```gleam
+/// let #(request, parser) = reset_ranking_rules(client, "movies")
+/// ```
+pub fn reset_ranking_rules(
+  client: Client,
+  index_uid: String,
+) -> #(
+  Request(String),
+  fn(Int, String) -> Result(MeilisearchResponse(a), Error),
+) {
+  let request =
+    create_base_request(
+      client,
+      "/indexes/" <> index_uid <> "/settings/ranking-rules",
+    )
+    |> request.set_method(http.Delete)
+  #(request, task_parser)
+}
+
 // Types ---------------------------------------------------------------------------------------------
 
 pub type Settings {
@@ -1246,13 +1358,7 @@ fn decode_settings() -> decode.Decoder(Settings) {
     "foreignKeys",
     decode.list(decode_foreign_keys()),
   )
-  use ranking_rules <- decode.field(
-    "rankingRules",
-    decode.list(
-      decode.string
-      |> decode.map(fn(value) { ranking_rule_from_string(value) }),
-    ),
-  )
+  use ranking_rules <- decode.field("rankingRules", decode_ranking_rules())
   use stop_words <- decode.field("stopWords", decode.list(decode.string))
   use non_separator_tokens <- decode.field(
     "nonSeparatorTokens",
@@ -1766,6 +1872,13 @@ fn faceting_to_json(faceting: Faceting) -> json.Json {
       }),
     ),
   ])
+}
+
+fn decode_ranking_rules() -> decode.Decoder(List(RankingRule)) {
+  decode.list(
+    decode.string
+    |> decode.map(fn(value) { ranking_rule_from_string(value) }),
+  )
 }
 
 fn ranking_rule_from_string(ranking_rule: String) -> RankingRule {

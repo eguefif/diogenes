@@ -85,6 +85,7 @@ Further documentation can be found at <https://hexdocs.pm/diogenes>.
 
 #### Features for v1.0
 - index
+- documents
 - Search
 - Multi-search
 - Facet search

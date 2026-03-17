@@ -11,15 +11,15 @@
 //// - [x] Filterable attributes - `/indexes/{indexUid}/settings/filterable-attributes`
 //// - [x] Sortable attributes - `/indexes/{indexUid}/settings/sortable-attributes`
 //// - [ ] Ranking rules - `/indexes/{indexUid}/settings/ranking-rules`
-//// - [ ] Stop words - `/indexes/{indexUid}/settings/stop-words`
+//// - [x] Stop words - `/indexes/{indexUid}/settings/stop-words`
 //// - [ ] Synonyms - `/indexes/{indexUid}/settings/synonyms`
 //// - [ ] Distinct attribute - `/indexes/{indexUid}/settings/distinct-attribute`
 //// - [ ] Typo tolerance - `/indexes/{indexUid}/settings/typo-tolerance`
 //// - [ ] Faceting - `/indexes/{indexUid}/settings/faceting`
 //// - [ ] Pagination - `/indexes/{indexUid}/settings/pagination`
 //// - [x] Dictionary - `/indexes/{indexUid}/settings/dictionary`
-//// - [ ] Separator tokens - `/indexes/{indexUid}/settings/separator-tokens`
-//// - [ ] Non-separator tokens - `/indexes/{indexUid}/settings/non-separator-tokens`
+//// - [x] Separator tokens - `/indexes/{indexUid}/settings/separator-tokens`
+//// - [x] Non-separator tokens - `/indexes/{indexUid}/settings/non-separator-tokens`
 //// - [ ] Localized attributes - `/indexes/{indexUid}/settings/localized-attributes`
 //// - [ ] Embedders - `/indexes/{indexUid}/settings/embedders`
 //// - [ ] Proximity precision - `/indexes/{indexUid}/settings/proximity-precision`
@@ -409,6 +409,201 @@ pub fn reset_sortable_attributes(
 ) -> Result(MeilisearchResponse(task), Error) {
   let #(request, parser) =
     sansio_settings.reset_sortable_attributes(client, index_uid)
+  send_request(request, [401, 404], parser)
+}
+
+/// Retrieves the non-separator tokens setting for the given index.
+///
+/// Non-separator tokens are characters that Meilisearch should not treat as
+/// word separators during tokenization.
+///
+/// On success returns `Ok(MeilisearchSingleResult(List(String)))`.
+/// Errors include `MeilisearchError` for 401/404 responses and
+/// `TransportError` for network failures.
+///
+/// ## Example
+/// ```gleam
+/// let assert Ok(MeilisearchSingleResult(tokens)) =
+///   get_non_separator_tokens(client, "movies")
+/// ```
+pub fn get_non_separator_tokens(
+  client: Client,
+  index_uid: String,
+) -> Result(MeilisearchResponse(List(String)), Error) {
+  let #(request, parser) =
+    sansio_settings.get_non_separator_tokens(client, index_uid)
+  send_request(request, [401, 404], parser)
+}
+
+/// Updates the non-separator tokens setting for the given index.
+///
+/// Non-separator tokens are characters that Meilisearch should not treat as
+/// word separators during tokenization. The operation is asynchronous —
+/// Meilisearch enqueues it and returns a `Task`.
+///
+/// On success returns `Ok(Task(...))`.
+///
+/// ## Example
+/// ```gleam
+/// let assert Ok(Task(task_uid: uid, ..)) =
+///   update_non_separator_tokens(client, "movies", ["@", "#"])
+/// ```
+pub fn update_non_separator_tokens(
+  client: Client,
+  index_uid: String,
+  tokens: List(String),
+) -> Result(MeilisearchResponse(task), Error) {
+  let #(request, parser) =
+    sansio_settings.update_non_separator_tokens(client, index_uid, tokens)
+  send_request(request, [401, 404], parser)
+}
+
+/// Resets the non-separator tokens setting for the given index to its default value.
+///
+/// The operation is asynchronous — Meilisearch enqueues it and returns a `Task`.
+///
+/// On success returns `Ok(Task(...))`.
+///
+/// ## Example
+/// ```gleam
+/// let assert Ok(Task(task_uid: uid, ..)) =
+///   reset_non_separator_tokens(client, "movies")
+/// ```
+pub fn reset_non_separator_tokens(
+  client: Client,
+  index_uid: String,
+) -> Result(MeilisearchResponse(task), Error) {
+  let #(request, parser) =
+    sansio_settings.reset_non_separator_tokens(client, index_uid)
+  send_request(request, [401, 404], parser)
+}
+
+/// Retrieves the separator tokens setting for the given index.
+///
+/// Separator tokens are characters that Meilisearch treats as word separators
+/// during tokenization.
+///
+/// On success returns `Ok(MeilisearchSingleResult(List(String)))`.
+/// Errors include `MeilisearchError` for 401/404 responses and
+/// `TransportError` for network failures.
+///
+/// ## Example
+/// ```gleam
+/// let assert Ok(MeilisearchSingleResult(tokens)) =
+///   get_separator_tokens(client, "movies")
+/// ```
+pub fn get_separator_tokens(
+  client: Client,
+  index_uid: String,
+) -> Result(MeilisearchResponse(List(String)), Error) {
+  let #(request, parser) =
+    sansio_settings.get_separator_tokens(client, index_uid)
+  send_request(request, [401, 404], parser)
+}
+
+/// Updates the separator tokens setting for the given index.
+///
+/// Separator tokens are characters that Meilisearch treats as word separators
+/// during tokenization. The operation is asynchronous — Meilisearch enqueues
+/// it and returns a `Task`.
+///
+/// On success returns `Ok(Task(...))`.
+///
+/// ## Example
+/// ```gleam
+/// let assert Ok(Task(task_uid: uid, ..)) =
+///   update_separator_tokens(client, "movies", ["|", "/"])
+/// ```
+pub fn update_separator_tokens(
+  client: Client,
+  index_uid: String,
+  tokens: List(String),
+) -> Result(MeilisearchResponse(task), Error) {
+  let #(request, parser) =
+    sansio_settings.update_separator_tokens(client, index_uid, tokens)
+  send_request(request, [401, 404], parser)
+}
+
+/// Resets the separator tokens setting for the given index to its default value.
+///
+/// The operation is asynchronous — Meilisearch enqueues it and returns a `Task`.
+///
+/// On success returns `Ok(Task(...))`.
+///
+/// ## Example
+/// ```gleam
+/// let assert Ok(Task(task_uid: uid, ..)) =
+///   reset_separator_tokens(client, "movies")
+/// ```
+pub fn reset_separator_tokens(
+  client: Client,
+  index_uid: String,
+) -> Result(MeilisearchResponse(task), Error) {
+  let #(request, parser) =
+    sansio_settings.reset_separator_tokens(client, index_uid)
+  send_request(request, [401, 404], parser)
+}
+
+/// Retrieves the stop words setting for the given index.
+///
+/// Stop words are words ignored by Meilisearch during search (e.g. "the", "a").
+///
+/// On success returns `Ok(MeilisearchSingleResult(List(String)))`.
+/// Errors include `MeilisearchError` for 401/404 responses and
+/// `TransportError` for network failures.
+///
+/// ## Example
+/// ```gleam
+/// let assert Ok(MeilisearchSingleResult(words)) =
+///   get_stop_words(client, "movies")
+/// ```
+pub fn get_stop_words(
+  client: Client,
+  index_uid: String,
+) -> Result(MeilisearchResponse(List(String)), Error) {
+  let #(request, parser) = sansio_settings.get_stop_words(client, index_uid)
+  send_request(request, [401, 404], parser)
+}
+
+/// Updates the stop words setting for the given index.
+///
+/// Stop words are words ignored by Meilisearch during search (e.g. "the", "a").
+/// The operation is asynchronous — Meilisearch enqueues it and returns a `Task`.
+///
+/// On success returns `Ok(Task(...))`.
+///
+/// ## Example
+/// ```gleam
+/// let assert Ok(Task(task_uid: uid, ..)) =
+///   update_stop_words(client, "movies", ["the", "a", "an"])
+/// ```
+pub fn update_stop_words(
+  client: Client,
+  index_uid: String,
+  words: List(String),
+) -> Result(MeilisearchResponse(task), Error) {
+  let #(request, parser) =
+    sansio_settings.update_stop_words(client, index_uid, words)
+  send_request(request, [401, 404], parser)
+}
+
+/// Resets the stop words setting for the given index to its default value.
+///
+/// The operation is asynchronous — Meilisearch enqueues it and returns a `Task`.
+///
+/// On success returns `Ok(Task(...))`.
+///
+/// ## Example
+/// ```gleam
+/// let assert Ok(Task(task_uid: uid, ..)) =
+///   reset_stop_words(client, "movies")
+/// ```
+pub fn reset_stop_words(
+  client: Client,
+  index_uid: String,
+) -> Result(MeilisearchResponse(task), Error) {
+  let #(request, parser) =
+    sansio_settings.reset_stop_words(client, index_uid)
   send_request(request, [401, 404], parser)
 }
 

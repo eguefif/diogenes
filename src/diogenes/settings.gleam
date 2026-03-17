@@ -7,9 +7,9 @@
 ////
 //// - [x] All settings - `/indexes/{indexUid}/settings`
 //// - [x] Displayed attributes - `/indexes/{indexUid}/settings/displayed-attributes`
-//// - [ ] Searchable attributes - `/indexes/{indexUid}/settings/searchable-attributes`
+//// - [x] Searchable attributes - `/indexes/{indexUid}/settings/searchable-attributes`
 //// - [x] Filterable attributes - `/indexes/{indexUid}/settings/filterable-attributes`
-//// - [ ] Sortable attributes - `/indexes/{indexUid}/settings/sortable-attributes`
+//// - [x] Sortable attributes - `/indexes/{indexUid}/settings/sortable-attributes`
 //// - [ ] Ranking rules - `/indexes/{indexUid}/settings/ranking-rules`
 //// - [ ] Stop words - `/indexes/{indexUid}/settings/stop-words`
 //// - [ ] Synonyms - `/indexes/{indexUid}/settings/synonyms`
@@ -279,6 +279,136 @@ pub fn reset_displayed_attributes(
 ) -> Result(MeilisearchResponse(task), Error) {
   let #(request, parser) =
     sansio_settings.reset_displayed_attributes(client, index_uid)
+  send_request(request, [401, 404], parser)
+}
+
+/// Retrieves the searchable attributes setting for the given index.
+///
+/// Searchable attributes are the fields Meilisearch searches through when
+/// processing a query.
+///
+/// On success returns `Ok(MeilisearchSingleResult(List(String)))`.
+/// Errors include `MeilisearchError` for 401/404 responses and
+/// `TransportError` for network failures.
+///
+/// ## Example
+/// ```gleam
+/// let assert Ok(MeilisearchSingleResult(attributes)) =
+///   get_searchable_attributes(client, "movies")
+/// ```
+pub fn get_searchable_attributes(
+  client: Client,
+  index_uid: String,
+) -> Result(MeilisearchResponse(List(String)), Error) {
+  let #(request, parser) =
+    sansio_settings.get_searchable_attributes(client, index_uid)
+  send_request(request, [401, 404], parser)
+}
+
+/// Updates the searchable attributes setting for the given index.
+///
+/// Searchable attributes are the fields Meilisearch searches through when
+/// processing a query. The operation is asynchronous — Meilisearch enqueues it
+/// and returns a `Task`.
+///
+/// On success returns `Ok(Task(...))`.
+///
+/// ## Example
+/// ```gleam
+/// let assert Ok(Task(task_uid: uid, ..)) =
+///   update_searchable_attributes(client, "movies", ["title", "overview"])
+/// ```
+pub fn update_searchable_attributes(
+  client: Client,
+  index_uid: String,
+  attributes: List(String),
+) -> Result(MeilisearchResponse(task), Error) {
+  let #(request, parser) =
+    sansio_settings.update_searchable_attributes(client, index_uid, attributes)
+  send_request(request, [401, 404], parser)
+}
+
+/// Resets the searchable attributes setting for the given index to its default value.
+///
+/// The operation is asynchronous — Meilisearch enqueues it and returns a `Task`.
+///
+/// On success returns `Ok(Task(...))`.
+///
+/// ## Example
+/// ```gleam
+/// let assert Ok(Task(task_uid: uid, ..)) =
+///   reset_searchable_attributes(client, "movies")
+/// ```
+pub fn reset_searchable_attributes(
+  client: Client,
+  index_uid: String,
+) -> Result(MeilisearchResponse(task), Error) {
+  let #(request, parser) =
+    sansio_settings.reset_searchable_attributes(client, index_uid)
+  send_request(request, [401, 404], parser)
+}
+
+/// Retrieves the sortable attributes setting for the given index.
+///
+/// Sortable attributes are the fields that can be used to sort search results.
+///
+/// On success returns `Ok(MeilisearchSingleResult(List(String)))`.
+/// Errors include `MeilisearchError` for 401/404 responses and
+/// `TransportError` for network failures.
+///
+/// ## Example
+/// ```gleam
+/// let assert Ok(MeilisearchSingleResult(attributes)) =
+///   get_sortable_attributes(client, "movies")
+/// ```
+pub fn get_sortable_attributes(
+  client: Client,
+  index_uid: String,
+) -> Result(MeilisearchResponse(List(String)), Error) {
+  let #(request, parser) =
+    sansio_settings.get_sortable_attributes(client, index_uid)
+  send_request(request, [401, 404], parser)
+}
+
+/// Updates the sortable attributes setting for the given index.
+///
+/// Sortable attributes are the fields that can be used to sort search results.
+/// The operation is asynchronous — Meilisearch enqueues it and returns a `Task`.
+///
+/// On success returns `Ok(Task(...))`.
+///
+/// ## Example
+/// ```gleam
+/// let assert Ok(Task(task_uid: uid, ..)) =
+///   update_sortable_attributes(client, "movies", ["release_date", "title"])
+/// ```
+pub fn update_sortable_attributes(
+  client: Client,
+  index_uid: String,
+  attributes: List(String),
+) -> Result(MeilisearchResponse(task), Error) {
+  let #(request, parser) =
+    sansio_settings.update_sortable_attributes(client, index_uid, attributes)
+  send_request(request, [401, 404], parser)
+}
+
+/// Resets the sortable attributes setting for the given index to its default value.
+///
+/// The operation is asynchronous — Meilisearch enqueues it and returns a `Task`.
+///
+/// On success returns `Ok(Task(...))`.
+///
+/// ## Example
+/// ```gleam
+/// let assert Ok(Task(task_uid: uid, ..)) =
+///   reset_sortable_attributes(client, "movies")
+/// ```
+pub fn reset_sortable_attributes(
+  client: Client,
+  index_uid: String,
+) -> Result(MeilisearchResponse(task), Error) {
+  let #(request, parser) =
+    sansio_settings.reset_sortable_attributes(client, index_uid)
   send_request(request, [401, 404], parser)
 }
 

@@ -412,6 +412,217 @@ pub fn reset_displayed_attributes(
   #(request, task_parser)
 }
 
+/// Builds a request to retrieve the searchable attributes setting for the given index.
+///
+/// Returns a tuple of the HTTP request and a parser function.
+/// The parser handles:
+/// - `200` — returns a `MeilisearchSingleResult(List(String))`
+/// - `401` — unauthorized (invalid or missing API key)
+/// - `404` — index not found
+///
+/// ## Example
+/// ```gleam
+/// let #(request, parser) = get_searchable_attributes(client, "movies")
+/// ```
+pub fn get_searchable_attributes(
+  client: Client,
+  index_uid: String,
+) -> #(
+  Request(String),
+  fn(Int, String) -> Result(MeilisearchResponse(List(String)), Error),
+) {
+  let request =
+    create_base_request(
+      client,
+      "/indexes/" <> index_uid <> "/settings/searchable-attributes",
+    )
+    |> request.set_method(http.Get)
+
+  let parser = fn(status: Int, body: String) {
+    case status {
+      200 ->
+        case json.parse(body, decode.list(decode.string)) {
+          Ok(attributes) -> Ok(MeilisearchSingleResult(attributes))
+          Error(error) -> Error(JsonError(error))
+        }
+      401 | 404 -> Error(meilisearch_error_from_json(body))
+      _ -> Error(UnexpectedHttpStatusCodeError(status, body))
+    }
+  }
+  #(request, parser)
+}
+
+/// Builds a request to update the searchable attributes setting for the given index.
+///
+/// Searchable attributes are the fields Meilisearch searches through when
+/// processing a query. The operation is asynchronous — Meilisearch enqueues it
+/// and returns a task.
+///
+/// Returns a tuple of the HTTP request and a parser function.
+/// The parser handles:
+/// - `202` — returns a `Task` with the enqueued task details
+/// - `401` — unauthorized (invalid or missing API key)
+/// - `404` — index not found
+///
+/// ## Example
+/// ```gleam
+/// let #(request, parser) = update_searchable_attributes(client, "movies", ["title", "overview"])
+/// ```
+pub fn update_searchable_attributes(
+  client: Client,
+  index_uid: String,
+  attributes: List(String),
+) -> #(
+  Request(String),
+  fn(Int, String) -> Result(MeilisearchResponse(a), Error),
+) {
+  let body = json.array(attributes, json.string) |> json.to_string
+  let request =
+    create_base_request(
+      client,
+      "/indexes/" <> index_uid <> "/settings/searchable-attributes",
+    )
+    |> request.set_method(http.Put)
+    |> request.set_header("Content-Type", "application/json")
+    |> request.set_body(body)
+  #(request, task_parser)
+}
+
+/// Builds a request to reset the searchable attributes setting for the given index to its default value.
+///
+/// The operation is asynchronous — Meilisearch enqueues it and returns a task.
+///
+/// Returns a tuple of the HTTP request and a parser function.
+/// The parser handles:
+/// - `202` — returns a `Task` with the enqueued task details
+/// - `401` — unauthorized (invalid or missing API key)
+/// - `404` — index not found
+///
+/// ## Example
+/// ```gleam
+/// let #(request, parser) = reset_searchable_attributes(client, "movies")
+/// ```
+pub fn reset_searchable_attributes(
+  client: Client,
+  index_uid: String,
+) -> #(
+  Request(String),
+  fn(Int, String) -> Result(MeilisearchResponse(a), Error),
+) {
+  let request =
+    create_base_request(
+      client,
+      "/indexes/" <> index_uid <> "/settings/searchable-attributes",
+    )
+    |> request.set_method(http.Delete)
+  #(request, task_parser)
+}
+
+/// Builds a request to retrieve the sortable attributes setting for the given index.
+///
+/// Returns a tuple of the HTTP request and a parser function.
+/// The parser handles:
+/// - `200` — returns a `MeilisearchSingleResult(List(String))`
+/// - `401` — unauthorized (invalid or missing API key)
+/// - `404` — index not found
+///
+/// ## Example
+/// ```gleam
+/// let #(request, parser) = get_sortable_attributes(client, "movies")
+/// ```
+pub fn get_sortable_attributes(
+  client: Client,
+  index_uid: String,
+) -> #(
+  Request(String),
+  fn(Int, String) -> Result(MeilisearchResponse(List(String)), Error),
+) {
+  let request =
+    create_base_request(
+      client,
+      "/indexes/" <> index_uid <> "/settings/sortable-attributes",
+    )
+    |> request.set_method(http.Get)
+
+  let parser = fn(status: Int, body: String) {
+    case status {
+      200 ->
+        case json.parse(body, decode.list(decode.string)) {
+          Ok(attributes) -> Ok(MeilisearchSingleResult(attributes))
+          Error(error) -> Error(JsonError(error))
+        }
+      401 | 404 -> Error(meilisearch_error_from_json(body))
+      _ -> Error(UnexpectedHttpStatusCodeError(status, body))
+    }
+  }
+  #(request, parser)
+}
+
+/// Builds a request to update the sortable attributes setting for the given index.
+///
+/// Sortable attributes are the fields that can be used to sort search results.
+/// The operation is asynchronous — Meilisearch enqueues it and returns a task.
+///
+/// Returns a tuple of the HTTP request and a parser function.
+/// The parser handles:
+/// - `202` — returns a `Task` with the enqueued task details
+/// - `401` — unauthorized (invalid or missing API key)
+/// - `404` — index not found
+///
+/// ## Example
+/// ```gleam
+/// let #(request, parser) = update_sortable_attributes(client, "movies", ["release_date", "title"])
+/// ```
+pub fn update_sortable_attributes(
+  client: Client,
+  index_uid: String,
+  attributes: List(String),
+) -> #(
+  Request(String),
+  fn(Int, String) -> Result(MeilisearchResponse(a), Error),
+) {
+  let body = json.array(attributes, json.string) |> json.to_string
+  let request =
+    create_base_request(
+      client,
+      "/indexes/" <> index_uid <> "/settings/sortable-attributes",
+    )
+    |> request.set_method(http.Put)
+    |> request.set_header("Content-Type", "application/json")
+    |> request.set_body(body)
+  #(request, task_parser)
+}
+
+/// Builds a request to reset the sortable attributes setting for the given index to its default value.
+///
+/// The operation is asynchronous — Meilisearch enqueues it and returns a task.
+///
+/// Returns a tuple of the HTTP request and a parser function.
+/// The parser handles:
+/// - `202` — returns a `Task` with the enqueued task details
+/// - `401` — unauthorized (invalid or missing API key)
+/// - `404` — index not found
+///
+/// ## Example
+/// ```gleam
+/// let #(request, parser) = reset_sortable_attributes(client, "movies")
+/// ```
+pub fn reset_sortable_attributes(
+  client: Client,
+  index_uid: String,
+) -> #(
+  Request(String),
+  fn(Int, String) -> Result(MeilisearchResponse(a), Error),
+) {
+  let request =
+    create_base_request(
+      client,
+      "/indexes/" <> index_uid <> "/settings/sortable-attributes",
+    )
+    |> request.set_method(http.Delete)
+  #(request, task_parser)
+}
+
 /// Builds a request to retrieve the filterable attributes setting for the given index.
 ///
 /// Returns a tuple of the HTTP request and a parser function.

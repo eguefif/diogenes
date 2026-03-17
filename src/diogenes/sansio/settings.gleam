@@ -1220,6 +1220,114 @@ pub fn reset_search_cutoff_ms(
   #(request, task_parser)
 }
 
+/// Builds a request to retrieve the synonyms setting for the given index.
+///
+/// Returns a tuple of the HTTP request and a parser function.
+/// The parser handles:
+/// - `200` — returns a `MeilisearchSingleResult(Dict(String, List(String)))`
+/// - `401` — unauthorized (invalid or missing API key)
+/// - `404` — index not found
+///
+/// ## Example
+/// ```gleam
+/// let #(request, parser) = get_synonyms(client, "movies")
+/// ```
+pub fn get_synonyms(
+  client: Client,
+  index_uid: String,
+) -> #(
+  Request(String),
+  fn(Int, String) ->
+    Result(MeilisearchResponse(dict.Dict(String, List(String))), Error),
+) {
+  let request =
+    create_base_request(
+      client,
+      "/indexes/" <> index_uid <> "/settings/synonyms",
+    )
+    |> request.set_method(http.Get)
+  let parser = fn(status: Int, body: String) {
+    case status {
+      200 ->
+        case
+          json.parse(body, decode.dict(decode.string, decode.list(decode.string)))
+        {
+          Ok(synonyms) -> Ok(MeilisearchSingleResult(synonyms))
+          Error(error) -> Error(JsonError(error))
+        }
+      401 | 404 -> Error(meilisearch_error_from_json(body))
+      _ -> Error(UnexpectedHttpStatusCodeError(status, body))
+    }
+  }
+  #(request, parser)
+}
+
+/// Builds a request to update the synonyms setting for the given index.
+///
+/// The operation is asynchronous — Meilisearch enqueues it and returns a task.
+///
+/// Returns a tuple of the HTTP request and a parser function.
+/// The parser handles:
+/// - `202` — returns a `Task` with the enqueued task details
+/// - `401` — unauthorized (invalid or missing API key)
+/// - `404` — index not found
+///
+/// ## Example
+/// ```gleam
+/// let #(request, parser) = update_synonyms(client, "movies", dict.from_list([#("wolverine", ["xmen", "logan"])]))
+/// ```
+pub fn update_synonyms(
+  client: Client,
+  index_uid: String,
+  synonyms: dict.Dict(String, List(String)),
+) -> #(
+  Request(String),
+  fn(Int, String) -> Result(MeilisearchResponse(a), Error),
+) {
+  let body =
+    json.dict(synonyms, fn(k) { k }, fn(v) { json.array(v, json.string) })
+    |> json.to_string
+  let request =
+    create_base_request(
+      client,
+      "/indexes/" <> index_uid <> "/settings/synonyms",
+    )
+    |> request.set_method(http.Put)
+    |> request.set_header("Content-Type", "application/json")
+    |> request.set_body(body)
+  #(request, task_parser)
+}
+
+/// Builds a request to reset the synonyms setting for the given index to its default value.
+///
+/// The operation is asynchronous — Meilisearch enqueues it and returns a task.
+///
+/// Returns a tuple of the HTTP request and a parser function.
+/// The parser handles:
+/// - `202` — returns a `Task` with the enqueued task details
+/// - `401` — unauthorized (invalid or missing API key)
+/// - `404` — index not found
+///
+/// ## Example
+/// ```gleam
+/// let #(request, parser) = reset_synonyms(client, "movies")
+/// ```
+pub fn reset_synonyms(
+  client: Client,
+  index_uid: String,
+) -> #(
+  Request(String),
+  fn(Int, String) -> Result(MeilisearchResponse(a), Error),
+) {
+  let request =
+    create_base_request(
+      client,
+      "/indexes/" <> index_uid <> "/settings/synonyms",
+    )
+    |> request.set_method(http.Delete)
+  #(request, task_parser)
+}
+
 /// Builds a request to retrieve the distinct attribute setting for the given index.
 ///
 /// Returns a tuple of the HTTP request and a parser function.

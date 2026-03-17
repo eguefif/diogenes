@@ -12,7 +12,7 @@
 //// - [x] Sortable attributes - `/indexes/{indexUid}/settings/sortable-attributes`
 //// - [x] Ranking rules - `/indexes/{indexUid}/settings/ranking-rules`
 //// - [x] Stop words - `/indexes/{indexUid}/settings/stop-words`
-//// - [ ] Synonyms - `/indexes/{indexUid}/settings/synonyms`
+//// - [x] Synonyms - `/indexes/{indexUid}/settings/synonyms`
 //// - [x] Distinct attribute - `/indexes/{indexUid}/settings/distinct-attribute`
 //// - [ ] Typo tolerance - `/indexes/{indexUid}/settings/typo-tolerance`
 //// - [ ] Faceting - `/indexes/{indexUid}/settings/faceting`
@@ -30,6 +30,7 @@
 
 import diogenes.{type Client, type Error, type MeilisearchResponse}
 import diogenes/sansio/settings as sansio_settings
+import gleam/dict
 import gleam/option
 import internal/http_tooling.{send_request}
 
@@ -830,6 +831,65 @@ pub fn reset_search_cutoff_ms(
 /// let assert Ok(MeilisearchSingleResult(attribute)) =
 ///   get_distinct_attribute(client, "movies")
 /// ```
+/// Retrieves the synonyms setting for the given index.
+///
+/// On success returns `Ok(MeilisearchSingleResult(Dict(String, List(String))))`.
+/// Errors include `MeilisearchError` for 401/404 responses and
+/// `TransportError` for network failures.
+///
+/// ## Example
+/// ```gleam
+/// let assert Ok(MeilisearchSingleResult(synonyms)) =
+///   get_synonyms(client, "movies")
+/// ```
+pub fn get_synonyms(
+  client: Client,
+  index_uid: String,
+) -> Result(MeilisearchResponse(dict.Dict(String, List(String))), Error) {
+  let #(request, parser) = sansio_settings.get_synonyms(client, index_uid)
+  send_request(request, [401, 404], parser)
+}
+
+/// Updates the synonyms setting for the given index.
+///
+/// The operation is asynchronous — Meilisearch enqueues it and returns a `Task`.
+///
+/// On success returns `Ok(Task(...))`.
+///
+/// ## Example
+/// ```gleam
+/// let assert Ok(Task(task_uid: uid, ..)) =
+///   update_synonyms(client, "movies", dict.from_list([#("wolverine", ["xmen", "logan"])]))
+/// ```
+pub fn update_synonyms(
+  client: Client,
+  index_uid: String,
+  synonyms: dict.Dict(String, List(String)),
+) -> Result(MeilisearchResponse(task), Error) {
+  let #(request, parser) =
+    sansio_settings.update_synonyms(client, index_uid, synonyms)
+  send_request(request, [401, 404], parser)
+}
+
+/// Resets the synonyms setting for the given index to its default value.
+///
+/// The operation is asynchronous — Meilisearch enqueues it and returns a `Task`.
+///
+/// On success returns `Ok(Task(...))`.
+///
+/// ## Example
+/// ```gleam
+/// let assert Ok(Task(task_uid: uid, ..)) =
+///   reset_synonyms(client, "movies")
+/// ```
+pub fn reset_synonyms(
+  client: Client,
+  index_uid: String,
+) -> Result(MeilisearchResponse(task), Error) {
+  let #(request, parser) = sansio_settings.reset_synonyms(client, index_uid)
+  send_request(request, [401, 404], parser)
+}
+
 pub fn get_distinct_attribute(
   client: Client,
   index_uid: String,

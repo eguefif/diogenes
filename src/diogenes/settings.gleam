@@ -178,3 +178,67 @@ pub fn reset_chat(
   let #(request, parser) = sansio_settings.reset_chat(client, index_uid)
   send_request(request, [401, 404], parser)
 }
+
+/// Retrieves the dictionary setting for the given index.
+///
+/// The dictionary is a list of custom words treated as distinct tokens
+/// during tokenization.
+///
+/// On success returns `Ok(MeilisearchSingleResult(List(String)))`.
+/// Errors include `MeilisearchError` for 401/404 responses and
+/// `TransportError` for network failures.
+///
+/// ## Example
+/// ```gleam
+/// let assert Ok(MeilisearchSingleResult(words)) =
+///   get_dictionary(client, "movies")
+/// ```
+pub fn get_dictionary(
+  client: Client,
+  index_uid: String,
+) -> Result(MeilisearchResponse(List(String)), Error) {
+  let #(request, parser) = sansio_settings.get_dictionary(client, index_uid)
+  send_request(request, [401, 404], parser)
+}
+
+/// Updates the dictionary setting for the given index.
+///
+/// The dictionary is a list of custom words that Meilisearch treats as
+/// distinct tokens during tokenization (e.g. `["J. R. R.", "W. E. B."]`).
+/// The operation is asynchronous — Meilisearch enqueues it and returns a `Task`.
+///
+/// On success returns `Ok(Task(...))`.
+///
+/// ## Example
+/// ```gleam
+/// let assert Ok(Task(task_uid: uid, ..)) =
+///   update_dictionary(client, "movies", ["J. R. R."])
+/// ```
+pub fn update_dictionary(
+  client: Client,
+  index_uid: String,
+  dictionnary: List(String),
+) -> Result(MeilisearchResponse(task), Error) {
+  let #(request, parser) =
+    sansio_settings.update_dictionary(client, index_uid, dictionnary)
+  send_request(request, [401, 404], parser)
+}
+
+/// Resets the dictionary setting for the given index to its default value.
+///
+/// The operation is asynchronous — Meilisearch enqueues it and returns a `Task`.
+///
+/// On success returns `Ok(Task(...))`.
+///
+/// ## Example
+/// ```gleam
+/// let assert Ok(Task(task_uid: uid, ..)) =
+///   reset_dictionary(client, "movies")
+/// ```
+pub fn reset_dictionary(
+  client: Client,
+  index_uid: String,
+) -> Result(MeilisearchResponse(task), Error) {
+  let #(request, parser) = sansio_settings.reset_dictionary(client, index_uid)
+  send_request(request, [401, 404], parser)
+}

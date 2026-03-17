@@ -173,6 +173,113 @@ pub fn reset_chat(
   #(request, task_parser)
 }
 
+/// Builds a request to retrieve the dictionary setting for the given index.
+///
+/// Returns a tuple of the HTTP request and a parser function.
+/// The parser handles:
+/// - `200` — returns a `MeilisearchSingleResult(List(String))`
+/// - `401` — unauthorized (invalid or missing API key)
+/// - `404` — index not found
+///
+/// ## Example
+/// ```gleam
+/// let #(request, parser) = get_dictionary(client, "movies")
+/// ```
+pub fn get_dictionary(
+  client: Client,
+  index_uid: String,
+) -> #(
+  Request(String),
+  fn(Int, String) -> Result(MeilisearchResponse(List(String)), Error),
+) {
+  let request =
+    create_base_request(
+      client,
+      "/indexes" <> index_uid <> "/settings/dictionary",
+    )
+    |> request.set_method(http.Get)
+
+  let parser = fn(status: Int, body: String) {
+    case status {
+      200 ->
+        case json.parse(body, decode.list(decode.string)) {
+          Ok(dictionary) -> Ok(MeilisearchSingleResult(dictionary))
+          Error(error) -> Error(JsonError(error))
+        }
+      401 | 404 -> Error(meilisearch_error_from_json(body))
+      _ -> Error(UnexpectedHttpStatusCodeError(status, body))
+    }
+  }
+  #(request, parser)
+}
+
+/// Builds a request to update the dictionary setting for the given index.
+///
+/// The dictionary is a list of custom words that Meilisearch treats as
+/// distinct tokens during tokenization (e.g. `["J. R. R.", "W. E. B."]`).
+/// Send `null` to reset to the default. The operation is asynchronous —
+/// Meilisearch enqueues it and returns a task.
+///
+/// Returns a tuple of the HTTP request and a parser function.
+/// The parser handles:
+/// - `202` — returns a `Task` with the enqueued task details
+/// - `401` — unauthorized (invalid or missing API key)
+/// - `404` — index not found
+///
+/// ## Example
+/// ```gleam
+/// let #(request, parser) = update_dictionary(client, "movies", ["J. R. R."])
+/// ```
+pub fn update_dictionary(
+  client: Client,
+  index_uid: String,
+  dictionnary: List(String),
+) -> #(
+  Request(String),
+  fn(Int, String) -> Result(MeilisearchResponse(a), Error),
+) {
+  let body = json.array(dictionnary, json.string) |> json.to_string
+  let request =
+    create_base_request(
+      client,
+      "/indexes" <> index_uid <> "/settings/dictionary",
+    )
+    |> request.set_method(http.Put)
+    |> request.set_header("Content-Type", "application/json")
+    |> request.set_body(body)
+  #(request, task_parser)
+}
+
+/// Builds a request to reset the dictionary setting for the given index to its default value.
+///
+/// The operation is asynchronous — Meilisearch enqueues it and returns a task.
+///
+/// Returns a tuple of the HTTP request and a parser function.
+/// The parser handles:
+/// - `202` — returns a `Task` with the enqueued task details
+/// - `401` — unauthorized (invalid or missing API key)
+/// - `404` — index not found
+///
+/// ## Example
+/// ```gleam
+/// let #(request, parser) = reset_dictionary(client, "movies")
+/// ```
+pub fn reset_dictionary(
+  client: Client,
+  index_uid: String,
+) -> #(
+  Request(String),
+  fn(Int, String) -> Result(MeilisearchResponse(a), Error),
+) {
+  let request =
+    create_base_request(
+      client,
+      "/indexes" <> index_uid <> "/settings/dictionary",
+    )
+    |> request.set_method(http.Delete)
+  #(request, task_parser)
+}
+
 // Types ---------------------------------------------------------------------------------------------
 
 pub type Settings {

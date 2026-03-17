@@ -20,13 +20,16 @@
 //// - [x] Dictionary - `/indexes/{indexUid}/settings/dictionary`
 //// - [x] Separator tokens - `/indexes/{indexUid}/settings/separator-tokens`
 //// - [x] Non-separator tokens - `/indexes/{indexUid}/settings/non-separator-tokens`
-//// - [ ] Localized attributes - `/indexes/{indexUid}/settings/localized-attributes`
+//// - [x] Localized attributes - `/indexes/{indexUid}/settings/localized-attributes`
 //// - [ ] Embedders - `/indexes/{indexUid}/settings/embedders`
-//// - [ ] Proximity precision - `/indexes/{indexUid}/settings/proximity-precision`
+//// - [x] Proximity precision - `/indexes/{indexUid}/settings/proximity-precision`
 //// - [x] Search cutoff ms - `/indexes/{indexUid}/settings/search-cutoff-ms`
 //// - [x] Facet search - `/indexes/{indexUid}/settings/facet-search`
-//// - [ ] Prefix search - `/indexes/{indexUid}/settings/prefix-search`
+//// - [x] Prefix search - `/indexes/{indexUid}/settings/prefix-search`
 //// - [x] Chat - `/indexes/{indexUid}/settings/chat`
+//// - [x] Foreign keys - `/indexes/{indexUid}/settings/foreign-keys`
+//// - [x] Localized attributes can be null
+//// - [ ] foreign keys does not pass
 
 import diogenes.{type Client, type Error, type MeilisearchResponse}
 import diogenes/sansio/settings as sansio_settings
@@ -975,8 +978,7 @@ pub fn get_typo_tolerance(
   client: Client,
   index_uid: String,
 ) -> Result(MeilisearchResponse(sansio_settings.TypoTolerance), Error) {
-  let #(request, parser) =
-    sansio_settings.get_typo_tolerance(client, index_uid)
+  let #(request, parser) = sansio_settings.get_typo_tolerance(client, index_uid)
   send_request(request, [401, 404], parser)
 }
 
@@ -1095,7 +1097,11 @@ pub fn update_distinct_attribute(
   distinct_attribute: String,
 ) -> Result(MeilisearchResponse(task), Error) {
   let #(request, parser) =
-    sansio_settings.update_distinct_attribute(client, index_uid, distinct_attribute)
+    sansio_settings.update_distinct_attribute(
+      client,
+      index_uid,
+      distinct_attribute,
+    )
   send_request(request, [401, 404], parser)
 }
 
@@ -1163,7 +1169,259 @@ pub fn reset_facet_search(
   client: Client,
   index_uid: String,
 ) -> Result(MeilisearchResponse(task), Error) {
+  let #(request, parser) = sansio_settings.reset_facet_search(client, index_uid)
+  send_request(request, [401, 404], parser)
+}
+
+/// Retrieves the localized attributes setting for the given index.
+///
+/// On success returns `Ok(MeilisearchSingleResult(List(LocalizedAttribute)))`.
+/// Errors include `MeilisearchError` for 401/404 responses and
+/// `TransportError` for network failures.
+///
+/// ## Example
+/// ```gleam
+/// let assert Ok(MeilisearchSingleResult(attributes)) =
+///   get_localized_attributes(client, "movies")
+/// ```
+/// Retrieves the proximity precision setting for the given index.
+///
+/// On success returns `Ok(MeilisearchSingleResult(ProximityPrecision))`.
+/// Errors include `MeilisearchError` for 401/404 responses and
+/// `TransportError` for network failures.
+///
+/// ## Example
+/// ```gleam
+/// let assert Ok(MeilisearchSingleResult(precision)) =
+///   get_proximity_precision(client, "movies")
+/// ```
+/// Retrieves the prefix search setting for the given index.
+///
+/// On success returns `Ok(MeilisearchSingleResult(PrefixSearch))`.
+/// Errors include `MeilisearchError` for 401/404 responses and
+/// `TransportError` for network failures.
+///
+/// ## Example
+/// ```gleam
+/// let assert Ok(MeilisearchSingleResult(prefix_search)) =
+///   get_prefix_search(client, "movies")
+/// ```
+pub fn get_prefix_search(
+  client: Client,
+  index_uid: String,
+) -> Result(MeilisearchResponse(sansio_settings.PrefixSearch), Error) {
+  let #(request, parser) = sansio_settings.get_prefix_search(client, index_uid)
+  send_request(request, [401, 404], parser)
+}
+
+/// Updates the prefix search setting for the given index.
+///
+/// The operation is asynchronous — Meilisearch enqueues it and returns a `Task`.
+///
+/// On success returns `Ok(Task(...))`.
+///
+/// ## Example
+/// ```gleam
+/// let assert Ok(Task(task_uid: uid, ..)) =
+///   update_prefix_search(client, "movies", IndexTime)
+/// ```
+pub fn update_prefix_search(
+  client: Client,
+  index_uid: String,
+  prefix_search: option.Option(sansio_settings.PrefixSearch),
+) -> Result(MeilisearchResponse(task), Error) {
   let #(request, parser) =
-    sansio_settings.reset_facet_search(client, index_uid)
+    sansio_settings.update_prefix_search(client, index_uid, prefix_search)
+  send_request(request, [401, 404], parser)
+}
+
+/// Resets the prefix search setting for the given index to its default value.
+///
+/// The operation is asynchronous — Meilisearch enqueues it and returns a `Task`.
+///
+/// On success returns `Ok(Task(...))`.
+///
+/// ## Example
+/// ```gleam
+/// let assert Ok(Task(task_uid: uid, ..)) =
+///   reset_prefix_search(client, "movies")
+/// ```
+pub fn reset_prefix_search(
+  client: Client,
+  index_uid: String,
+) -> Result(MeilisearchResponse(task), Error) {
+  let #(request, parser) =
+    sansio_settings.reset_prefix_search(client, index_uid)
+  send_request(request, [401, 404], parser)
+}
+
+pub fn get_proximity_precision(
+  client: Client,
+  index_uid: String,
+) -> Result(MeilisearchResponse(sansio_settings.ProximityPrecision), Error) {
+  let #(request, parser) =
+    sansio_settings.get_proximity_precision(client, index_uid)
+  send_request(request, [401, 404], parser)
+}
+
+/// Updates the proximity precision setting for the given index.
+///
+/// The operation is asynchronous — Meilisearch enqueues it and returns a `Task`.
+///
+/// On success returns `Ok(Task(...))`.
+///
+/// ## Example
+/// ```gleam
+/// let assert Ok(Task(task_uid: uid, ..)) =
+///   update_proximity_precision(client, "movies", ByWord)
+/// ```
+pub fn update_proximity_precision(
+  client: Client,
+  index_uid: String,
+  proximity_precision: sansio_settings.ProximityPrecision,
+) -> Result(MeilisearchResponse(task), Error) {
+  let #(request, parser) =
+    sansio_settings.update_proximity_precision(
+      client,
+      index_uid,
+      proximity_precision,
+    )
+  send_request(request, [401, 404], parser)
+}
+
+/// Resets the proximity precision setting for the given index to its default value.
+///
+/// The operation is asynchronous — Meilisearch enqueues it and returns a `Task`.
+///
+/// On success returns `Ok(Task(...))`.
+///
+/// ## Example
+/// ```gleam
+/// let assert Ok(Task(task_uid: uid, ..)) =
+///   reset_proximity_precision(client, "movies")
+/// ```
+pub fn reset_proximity_precision(
+  client: Client,
+  index_uid: String,
+) -> Result(MeilisearchResponse(task), Error) {
+  let #(request, parser) =
+    sansio_settings.reset_proximity_precision(client, index_uid)
+  send_request(request, [401, 404], parser)
+}
+
+pub fn get_localized_attributes(
+  client: Client,
+  index_uid: String,
+) -> Result(
+  MeilisearchResponse(
+    option.Option(List(sansio_settings.LocalizedAttribute)),
+  ),
+  Error,
+) {
+  let #(request, parser) =
+    sansio_settings.get_localized_attributes(client, index_uid)
+  send_request(request, [401, 404], parser)
+}
+
+/// Updates the localized attributes setting for the given index.
+///
+/// The operation is asynchronous — Meilisearch enqueues it and returns a `Task`.
+///
+/// On success returns `Ok(Task(...))`.
+///
+/// ## Example
+/// ```gleam
+/// let assert Ok(Task(task_uid: uid, ..)) =
+///   update_localized_attributes(client, "movies", attributes)
+/// ```
+pub fn update_localized_attributes(
+  client: Client,
+  index_uid: String,
+  attributes: List(sansio_settings.LocalizedAttribute),
+) -> Result(MeilisearchResponse(task), Error) {
+  let #(request, parser) =
+    sansio_settings.update_localized_attributes(client, index_uid, attributes)
+  send_request(request, [401, 404], parser)
+}
+
+/// Resets the localized attributes setting for the given index to its default value.
+///
+/// The operation is asynchronous — Meilisearch enqueues it and returns a `Task`.
+///
+/// On success returns `Ok(Task(...))`.
+///
+/// ## Example
+/// ```gleam
+/// let assert Ok(Task(task_uid: uid, ..)) =
+///   reset_localized_attributes(client, "movies")
+/// ```
+pub fn reset_localized_attributes(
+  client: Client,
+  index_uid: String,
+) -> Result(MeilisearchResponse(task), Error) {
+  let #(request, parser) =
+    sansio_settings.reset_localized_attributes(client, index_uid)
+  send_request(request, [401, 404], parser)
+}
+
+/// Retrieves the foreign keys setting for the given index.
+///
+/// On success returns `Ok(MeilisearchSingleResult(List(ForeignKey)))`.
+/// Errors include `MeilisearchError` for 401/404 responses and
+/// `TransportError` for network failures.
+///
+/// ## Example
+/// ```gleam
+/// let assert Ok(MeilisearchSingleResult(foreign_keys)) =
+///   get_foreign_keys(client, "movies")
+/// ```
+pub fn get_foreign_keys(
+  client: Client,
+  index_uid: String,
+) -> Result(
+  MeilisearchResponse(option.Option(List(sansio_settings.ForeignKey))),
+  Error,
+) {
+  let #(request, parser) = sansio_settings.get_foreign_keys(client, index_uid)
+  send_request(request, [401, 404], parser)
+}
+
+/// Updates the foreign keys setting for the given index.
+///
+/// The operation is asynchronous — Meilisearch enqueues it and returns a `Task`.
+///
+/// On success returns `Ok(Task(...))`.
+///
+/// ## Example
+/// ```gleam
+/// let assert Ok(Task(task_uid: uid, ..)) =
+///   update_foreign_keys(client, "movies", foreign_keys)
+/// ```
+pub fn update_foreign_keys(
+  client: Client,
+  index_uid: String,
+  foreign_keys: List(sansio_settings.ForeignKey),
+) -> Result(MeilisearchResponse(task), Error) {
+  let #(request, parser) =
+    sansio_settings.update_foreign_keys(client, index_uid, foreign_keys)
+  send_request(request, [401, 404], parser)
+}
+
+/// Resets the foreign keys setting for the given index to its default value.
+///
+/// The operation is asynchronous — Meilisearch enqueues it and returns a `Task`.
+///
+/// On success returns `Ok(Task(...))`.
+///
+/// ## Example
+/// ```gleam
+/// let assert Ok(Task(task_uid: uid, ..)) =
+///   reset_foreign_keys(client, "movies")
+/// ```
+pub fn reset_foreign_keys(
+  client: Client,
+  index_uid: String,
+) -> Result(MeilisearchResponse(task), Error) {
+  let #(request, parser) = sansio_settings.reset_foreign_keys(client, index_uid)
   send_request(request, [401, 404], parser)
 }

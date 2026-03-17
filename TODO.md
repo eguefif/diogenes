@@ -41,6 +41,8 @@
 | Batches | 0% | 0/2 |
 | Management | 5% | 1/22 |
 
+- [ ] check error 404, it seems that we don't parse them correctly
+
 ## Health
 
 - [x] Get health - `GET /health`

@@ -7,6 +7,7 @@ import gleam/dict.{type Dict}
 import gleam/dynamic/decode
 import gleam/http
 import gleam/http/request.{type Request}
+import gleam/io
 import gleam/json
 import gleam/option
 import gleam/result
@@ -1220,6 +1221,438 @@ pub fn reset_search_cutoff_ms(
   #(request, task_parser)
 }
 
+/// Builds a request to retrieve the foreign keys setting for the given index.
+///
+/// Returns a tuple of the HTTP request and a parser function.
+/// The parser handles:
+/// - `200` — returns a `MeilisearchSingleResult(List(ForeignKey))`
+/// - `401` — unauthorized (invalid or missing API key)
+/// - `404` — index not found
+///
+/// ## Example
+/// ```gleam
+/// let #(request, parser) = get_foreign_keys(client, "movies")
+/// ```
+pub fn get_foreign_keys(
+  client: Client,
+  index_uid: String,
+) -> #(
+  Request(String),
+  fn(Int, String) ->
+    Result(MeilisearchResponse(option.Option(List(ForeignKey))), Error),
+) {
+  let request =
+    create_base_request(
+      client,
+      "/indexes/" <> index_uid <> "/settings/foreign-keys",
+    )
+    |> request.set_method(http.Get)
+  let parser = fn(status: Int, body: String) {
+    case status {
+      200 ->
+        case
+          json.parse(body, decode.optional(decode.list(decode_foreign_keys())))
+        {
+          Ok(foreign_keys) -> Ok(MeilisearchSingleResult(foreign_keys))
+          Error(error) -> Error(JsonError(error))
+        }
+      401 | 404 -> Error(meilisearch_error_from_json(body))
+      _ -> Error(UnexpectedHttpStatusCodeError(status, body))
+    }
+  }
+  #(request, parser)
+}
+
+/// Builds a request to update the foreign keys setting for the given index.
+///
+/// The operation is asynchronous — Meilisearch enqueues it and returns a task.
+///
+/// Returns a tuple of the HTTP request and a parser function.
+/// The parser handles:
+/// - `202` — returns a `Task` with the enqueued task details
+/// - `401` — unauthorized (invalid or missing API key)
+/// - `404` — index not found
+///
+/// ## Example
+/// ```gleam
+/// let #(request, parser) = update_foreign_keys(client, "movies", foreign_keys)
+/// ```
+pub fn update_foreign_keys(
+  client: Client,
+  index_uid: String,
+  foreign_keys: List(ForeignKey),
+) -> #(
+  Request(String),
+  fn(Int, String) -> Result(MeilisearchResponse(a), Error),
+) {
+  let body = json.array(foreign_keys, foreign_key_to_json) |> json.to_string
+  let request =
+    create_base_request(
+      client,
+      "/indexes/" <> index_uid <> "/settings/foreign-keys",
+    )
+    |> request.set_method(http.Patch)
+    |> request.set_header("Content-Type", "application/json")
+    |> request.set_body(body)
+  #(request, task_parser)
+}
+
+/// Builds a request to reset the foreign keys setting for the given index to its default value.
+///
+/// The operation is asynchronous — Meilisearch enqueues it and returns a task.
+///
+/// Returns a tuple of the HTTP request and a parser function.
+/// The parser handles:
+/// - `202` — returns a `Task` with the enqueued task details
+/// - `401` — unauthorized (invalid or missing API key)
+/// - `404` — index not found
+///
+/// ## Example
+/// ```gleam
+/// let #(request, parser) = reset_foreign_keys(client, "movies")
+/// ```
+pub fn reset_foreign_keys(
+  client: Client,
+  index_uid: String,
+) -> #(
+  Request(String),
+  fn(Int, String) -> Result(MeilisearchResponse(a), Error),
+) {
+  let request =
+    create_base_request(
+      client,
+      "/indexes/" <> index_uid <> "/settings/foreign-keys",
+    )
+    |> request.set_method(http.Delete)
+  #(request, task_parser)
+}
+
+/// Builds a request to retrieve the prefix search setting for the given index.
+///
+/// Returns a tuple of the HTTP request and a parser function.
+/// The parser handles:
+/// - `200` — returns a `MeilisearchSingleResult(PrefixSearch)`
+/// - `401` — unauthorized (invalid or missing API key)
+/// - `404` — index not found
+///
+/// ## Example
+/// ```gleam
+/// let #(request, parser) = get_prefix_search(client, "movies")
+/// ```
+pub fn get_prefix_search(
+  client: Client,
+  index_uid: String,
+) -> #(
+  Request(String),
+  fn(Int, String) -> Result(MeilisearchResponse(PrefixSearch), Error),
+) {
+  let request =
+    create_base_request(
+      client,
+      "/indexes/" <> index_uid <> "/settings/prefix-search",
+    )
+    |> request.set_method(http.Get)
+  let parser = fn(status: Int, body: String) {
+    case status {
+      200 ->
+        case
+          json.parse(
+            body,
+            decode.string |> decode.map(prefix_search_from_string),
+          )
+        {
+          Ok(prefix_search) -> Ok(MeilisearchSingleResult(prefix_search))
+          Error(error) -> Error(JsonError(error))
+        }
+      401 | 404 -> Error(meilisearch_error_from_json(body))
+      _ -> Error(UnexpectedHttpStatusCodeError(status, body))
+    }
+  }
+  #(request, parser)
+}
+
+/// Builds a request to update the prefix search setting for the given index.
+///
+/// The operation is asynchronous — Meilisearch enqueues it and returns a task.
+///
+/// Returns a tuple of the HTTP request and a parser function.
+/// The parser handles:
+/// - `202` — returns a `Task` with the enqueued task details
+/// - `401` — unauthorized (invalid or missing API key)
+/// - `404` — index not found
+///
+/// ## Example
+/// ```gleam
+/// let #(request, parser) = update_prefix_search(client, "movies", IndexTime)
+/// ```
+pub fn update_prefix_search(
+  client: Client,
+  index_uid: String,
+  prefix_search: option.Option(PrefixSearch),
+) -> #(
+  Request(String),
+  fn(Int, String) -> Result(MeilisearchResponse(a), Error),
+) {
+  let body = prefix_search_to_json(prefix_search) |> json.to_string
+  let request =
+    create_base_request(
+      client,
+      "/indexes/" <> index_uid <> "/settings/prefix-search",
+    )
+    |> request.set_method(http.Put)
+    |> request.set_header("Content-Type", "application/json")
+    |> request.set_body(body)
+  #(request, task_parser)
+}
+
+/// Builds a request to reset the prefix search setting for the given index to its default value.
+///
+/// The operation is asynchronous — Meilisearch enqueues it and returns a task.
+///
+/// Returns a tuple of the HTTP request and a parser function.
+/// The parser handles:
+/// - `202` — returns a `Task` with the enqueued task details
+/// - `401` — unauthorized (invalid or missing API key)
+/// - `404` — index not found
+///
+/// ## Example
+/// ```gleam
+/// let #(request, parser) = reset_prefix_search(client, "movies")
+/// ```
+pub fn reset_prefix_search(
+  client: Client,
+  index_uid: String,
+) -> #(
+  Request(String),
+  fn(Int, String) -> Result(MeilisearchResponse(a), Error),
+) {
+  let request =
+    create_base_request(
+      client,
+      "/indexes/" <> index_uid <> "/settings/prefix-search",
+    )
+    |> request.set_method(http.Delete)
+  #(request, task_parser)
+}
+
+/// Builds a request to retrieve the proximity precision setting for the given index.
+///
+/// Returns a tuple of the HTTP request and a parser function.
+/// The parser handles:
+/// - `200` — returns a `MeilisearchSingleResult(ProximityPrecision)`
+/// - `401` — unauthorized (invalid or missing API key)
+/// - `404` — index not found
+///
+/// ## Example
+/// ```gleam
+/// let #(request, parser) = get_proximity_precision(client, "movies")
+/// ```
+pub fn get_proximity_precision(
+  client: Client,
+  index_uid: String,
+) -> #(
+  Request(String),
+  fn(Int, String) -> Result(MeilisearchResponse(ProximityPrecision), Error),
+) {
+  let request =
+    create_base_request(
+      client,
+      "/indexes/" <> index_uid <> "/settings/proximity-precision",
+    )
+    |> request.set_method(http.Get)
+  let parser = fn(status: Int, body: String) {
+    case status {
+      200 ->
+        case
+          json.parse(
+            body,
+            decode.string |> decode.map(proximity_precision_from_string),
+          )
+        {
+          Ok(precision) -> Ok(MeilisearchSingleResult(precision))
+          Error(error) -> Error(JsonError(error))
+        }
+      401 | 404 -> Error(meilisearch_error_from_json(body))
+      _ -> Error(UnexpectedHttpStatusCodeError(status, body))
+    }
+  }
+  #(request, parser)
+}
+
+/// Builds a request to update the proximity precision setting for the given index.
+///
+/// The operation is asynchronous — Meilisearch enqueues it and returns a task.
+///
+/// Returns a tuple of the HTTP request and a parser function.
+/// The parser handles:
+/// - `202` — returns a `Task` with the enqueued task details
+/// - `401` — unauthorized (invalid or missing API key)
+/// - `404` — index not found
+///
+/// ## Example
+/// ```gleam
+/// let #(request, parser) = update_proximity_precision(client, "movies", ByWord)
+/// ```
+pub fn update_proximity_precision(
+  client: Client,
+  index_uid: String,
+  proximity_precision: ProximityPrecision,
+) -> #(
+  Request(String),
+  fn(Int, String) -> Result(MeilisearchResponse(a), Error),
+) {
+  let body = proximity_precision_to_json(proximity_precision) |> json.to_string
+  let request =
+    create_base_request(
+      client,
+      "/indexes/" <> index_uid <> "/settings/proximity-precision",
+    )
+    |> request.set_method(http.Put)
+    |> request.set_header("Content-Type", "application/json")
+    |> request.set_body(body)
+  #(request, task_parser)
+}
+
+/// Builds a request to reset the proximity precision setting for the given index to its default value.
+///
+/// The operation is asynchronous — Meilisearch enqueues it and returns a task.
+///
+/// Returns a tuple of the HTTP request and a parser function.
+/// The parser handles:
+/// - `202` — returns a `Task` with the enqueued task details
+/// - `401` — unauthorized (invalid or missing API key)
+/// - `404` — index not found
+///
+/// ## Example
+/// ```gleam
+/// let #(request, parser) = reset_proximity_precision(client, "movies")
+/// ```
+pub fn reset_proximity_precision(
+  client: Client,
+  index_uid: String,
+) -> #(
+  Request(String),
+  fn(Int, String) -> Result(MeilisearchResponse(a), Error),
+) {
+  let request =
+    create_base_request(
+      client,
+      "/indexes/" <> index_uid <> "/settings/proximity-precision",
+    )
+    |> request.set_method(http.Delete)
+  #(request, task_parser)
+}
+
+/// Builds a request to retrieve the localized attributes setting for the given index.
+///
+/// Returns a tuple of the HTTP request and a parser function.
+/// The parser handles:
+/// - `200` — returns a `MeilisearchSingleResult(List(LocalizedAttribute))`
+/// - `401` — unauthorized (invalid or missing API key)
+/// - `404` — index not found
+///
+/// ## Example
+/// ```gleam
+/// let #(request, parser) = get_localized_attributes(client, "movies")
+/// ```
+pub fn get_localized_attributes(
+  client: Client,
+  index_uid: String,
+) -> #(
+  Request(String),
+  fn(Int, String) ->
+    Result(MeilisearchResponse(option.Option(List(LocalizedAttribute))), Error),
+) {
+  let request =
+    create_base_request(
+      client,
+      "/indexes/" <> index_uid <> "/settings/localized-attributes",
+    )
+    |> request.set_method(http.Get)
+  let parser = fn(status: Int, body: String) {
+    case status {
+      200 ->
+        case
+          json.parse(
+            body,
+            decode.optional(decode.list(decode_localized_attribute())),
+          )
+        {
+          Ok(attributes) -> Ok(MeilisearchSingleResult(attributes))
+          Error(error) -> Error(JsonError(error))
+        }
+      401 | 404 -> Error(meilisearch_error_from_json(body))
+      _ -> Error(UnexpectedHttpStatusCodeError(status, body))
+    }
+  }
+  #(request, parser)
+}
+
+/// Builds a request to update the localized attributes setting for the given index.
+///
+/// The operation is asynchronous — Meilisearch enqueues it and returns a task.
+///
+/// Returns a tuple of the HTTP request and a parser function.
+/// The parser handles:
+/// - `202` — returns a `Task` with the enqueued task details
+/// - `401` — unauthorized (invalid or missing API key)
+/// - `404` — index not found
+///
+/// ## Example
+/// ```gleam
+/// let #(request, parser) = update_localized_attributes(client, "movies", attributes)
+/// ```
+pub fn update_localized_attributes(
+  client: Client,
+  index_uid: String,
+  attributes: List(LocalizedAttribute),
+) -> #(
+  Request(String),
+  fn(Int, String) -> Result(MeilisearchResponse(a), Error),
+) {
+  let body =
+    json.array(attributes, localized_attribute_to_json) |> json.to_string
+  let request =
+    create_base_request(
+      client,
+      "/indexes/" <> index_uid <> "/settings/localized-attributes",
+    )
+    |> request.set_method(http.Put)
+    |> request.set_header("Content-Type", "application/json")
+    |> request.set_body(body)
+  #(request, task_parser)
+}
+
+/// Builds a request to reset the localized attributes setting for the given index to its default value.
+///
+/// The operation is asynchronous — Meilisearch enqueues it and returns a task.
+///
+/// Returns a tuple of the HTTP request and a parser function.
+/// The parser handles:
+/// - `202` — returns a `Task` with the enqueued task details
+/// - `401` — unauthorized (invalid or missing API key)
+/// - `404` — index not found
+///
+/// ## Example
+/// ```gleam
+/// let #(request, parser) = reset_localized_attributes(client, "movies")
+/// ```
+pub fn reset_localized_attributes(
+  client: Client,
+  index_uid: String,
+) -> #(
+  Request(String),
+  fn(Int, String) -> Result(MeilisearchResponse(a), Error),
+) {
+  let request =
+    create_base_request(
+      client,
+      "/indexes/" <> index_uid <> "/settings/localized-attributes",
+    )
+    |> request.set_method(http.Delete)
+  #(request, task_parser)
+}
+
 /// Builds a request to retrieve the pagination setting for the given index.
 ///
 /// Returns a tuple of the HTTP request and a parser function.
@@ -1564,7 +1997,10 @@ pub fn get_synonyms(
     case status {
       200 ->
         case
-          json.parse(body, decode.dict(decode.string, decode.list(decode.string)))
+          json.parse(
+            body,
+            decode.dict(decode.string, decode.list(decode.string)),
+          )
         {
           Ok(synonyms) -> Ok(MeilisearchSingleResult(synonyms))
           Error(error) -> Error(JsonError(error))
@@ -1857,7 +2293,7 @@ pub type Settings {
     // TODO: fiterable_attributes can also be object
     filterable_attributes: List(String),
     sortable_attributes: List(String),
-    foreign_keys: List(ForeignKey),
+    foreign_keys: option.Option(List(ForeignKey)),
     ranking_rules: List(RankingRule),
     stop_words: List(String),
     non_separator_tokens: List(String),
@@ -1871,9 +2307,9 @@ pub type Settings {
     pagination: Pagination,
     embedders: Embedder,
     search_cutoff_ms: option.Option(Int),
-    localized_attribute: List(LocalizedAttribute),
+    localized_attribute: option.Option(List(LocalizedAttribute)),
     facet_search: Bool,
-    prefix_search: PrefixSearch,
+    prefix_search: option.Option(PrefixSearch),
   )
 }
 
@@ -1882,7 +2318,7 @@ pub type ForeignKey {
 }
 
 pub type PrefixSearch {
-  IndexTime
+  IndexingTime
   PrefixSearchDisabled
   UnexpectedPrefixSearch
 }
@@ -2046,7 +2482,7 @@ fn decode_settings() -> decode.Decoder(Settings) {
   )
   use foreign_keys <- decode.field(
     "foreignKeys",
-    decode.list(decode_foreign_keys()),
+    decode.optional(decode.list(decode_foreign_keys())),
   )
   use ranking_rules <- decode.field("rankingRules", decode_ranking_rules())
   use stop_words <- decode.field("stopWords", decode.list(decode.string))
@@ -2086,19 +2522,12 @@ fn decode_settings() -> decode.Decoder(Settings) {
   )
   use localized_attribute <- decode.field(
     "localizedAttributes",
-    decode.list(decode_localized_attribute()),
+    decode.optional(decode.list(decode_localized_attribute())),
   )
   use facet_search <- decode.field("facetSearch", decode.bool)
   use prefix_search <- decode.field(
     "prefixSearch",
-    decode.string
-      |> decode.map(fn(value) {
-        case value {
-          "indexTime" -> IndexTime
-          "disabled" -> PrefixSearchDisabled
-          _ -> UnexpectedPrefixSearch
-        }
-      }),
+    decode.optional(decode.string |> decode.map(prefix_search_from_string)),
   )
 
   decode.success(Settings(
@@ -2145,7 +2574,10 @@ fn settings_list_to_json(settings: Settings) -> String {
         "sortableAttributes",
         json.array(settings.sortable_attributes, json.string),
       ),
-      #("foreignKeys", json.array(settings.foreign_keys, foreign_key_to_json)),
+      #("foreignKeys", case settings.foreign_keys {
+        option.Some(keys) -> json.array(keys, foreign_key_to_json)
+        option.None -> json.null()
+      }),
       #(
         "rankingRules",
         json.array(settings.ranking_rules, ranking_rule_to_json),
@@ -2177,10 +2609,10 @@ fn settings_list_to_json(settings: Settings) -> String {
         option.Some(search_cutoff_ms) -> json.int(search_cutoff_ms)
         option.None -> json.null()
       }),
-      #(
-        "localizedAttributes",
-        json.array(settings.localized_attribute, localized_attribute_to_json),
-      ),
+      #("localizedAttributes", case settings.localized_attribute {
+        option.Some(attrs) -> json.array(attrs, localized_attribute_to_json)
+        option.None -> json.null()
+      }),
       #("facetSearch", json.bool(settings.facet_search)),
       #("prefixSearch", prefix_search_to_json(settings.prefix_search)),
     ])
@@ -2188,10 +2620,20 @@ fn settings_list_to_json(settings: Settings) -> String {
   json.to_string(object)
 }
 
-fn prefix_search_to_json(prefix_search: PrefixSearch) -> json.Json {
+fn prefix_search_from_string(value: String) -> PrefixSearch {
+  case value {
+    "indexingTime" -> IndexingTime
+    "disabled" -> PrefixSearchDisabled
+    _ -> UnexpectedPrefixSearch
+  }
+}
+
+fn prefix_search_to_json(
+  prefix_search: option.Option(PrefixSearch),
+) -> json.Json {
   case prefix_search {
-    IndexTime -> json.string("indexTime")
-    PrefixSearchDisabled -> json.string("disabled")
+    option.Some(IndexingTime) -> json.string("indexingTime")
+    option.Some(PrefixSearchDisabled) -> json.string("disabled")
     _ -> json.null()
   }
 }

@@ -1046,22 +1046,6 @@ pub fn reset_filterable_attributes(
   #(request, task_parser)
 }
 
-/// Builds a request to retrieve the ranking rules for the given index.
-///
-/// Ranking rules determine the order in which Meilisearch returns search results.
-/// The default ranking rules are: `Words`, `Typo`, `Proximity`, `AttributeRank`,
-/// `Sort`, `WordPosition`, `Exactness`.
-///
-/// Returns a tuple of the HTTP request and a parser function.
-/// The parser handles:
-/// - `200` — returns a `MeilisearchSingleResult(List(RankingRule))`
-/// - `401` — unauthorized (invalid or missing API key)
-/// - `404` — index not found
-///
-/// ## Example
-/// ```gleam
-/// let #(request, parser) = get_ranking_rules(client, "movies")
-/// ```
 pub fn get_ranking_rules(
   client: Client,
   index_uid: String,
@@ -1090,22 +1074,6 @@ pub fn get_ranking_rules(
   #(request, parser)
 }
 
-/// Builds a request to update the ranking rules for the given index.
-///
-/// Ranking rules determine the order in which Meilisearch returns search results.
-/// The operation is asynchronous — Meilisearch enqueues it and returns a task.
-///
-/// Returns a tuple of the HTTP request and a parser function.
-/// The parser handles:
-/// - `202` — returns a `Task` with the enqueued task details
-/// - `401` — unauthorized (invalid or missing API key)
-/// - `404` — index not found
-///
-/// ## Example
-/// ```gleam
-/// let #(request, parser) =
-///   update_ranking_rules(client, "movies", [Words, Typo, Proximity, AttributeRank, Sort, Exactness])
-/// ```
 pub fn update_ranking_rules(
   client: Client,
   index_uid: String,
@@ -1126,22 +1094,6 @@ pub fn update_ranking_rules(
   #(request, task_parser)
 }
 
-/// Builds a request to reset the ranking rules for the given index to their default values.
-///
-/// The default ranking rules are: `Words`, `Typo`, `Proximity`, `AttributeRank`,
-/// `Sort`, `WordPosition`, `Exactness`.
-/// The operation is asynchronous — Meilisearch enqueues it and returns a task.
-///
-/// Returns a tuple of the HTTP request and a parser function.
-/// The parser handles:
-/// - `202` — returns a `Task` with the enqueued task details
-/// - `401` — unauthorized (invalid or missing API key)
-/// - `404` — index not found
-///
-/// ## Example
-/// ```gleam
-/// let #(request, parser) = reset_ranking_rules(client, "movies")
-/// ```
 pub fn reset_ranking_rules(
   client: Client,
   index_uid: String,
@@ -1153,6 +1105,116 @@ pub fn reset_ranking_rules(
     create_base_request(
       client,
       "/indexes/" <> index_uid <> "/settings/ranking-rules",
+    )
+    |> request.set_method(http.Delete)
+  #(request, task_parser)
+}
+
+/// Builds a request to retrieve the search cutoff ms setting for the given index.
+///
+/// `searchCutoffMs` defines the maximum time in milliseconds Meilisearch will
+/// spend processing a search request before returning the best results found so far.
+/// The default value is `0` (no cutoff).
+///
+/// Returns a tuple of the HTTP request and a parser function.
+/// The parser handles:
+/// - `200` — returns a `MeilisearchSingleResult(Int)`
+/// - `401` — unauthorized (invalid or missing API key)
+/// - `404` — index not found
+///
+/// ## Example
+/// ```gleam
+/// let #(request, parser) = get_search_cutoff_ms(client, "movies")
+/// ```
+pub fn get_search_cutoff_ms(
+  client: Client,
+  index_uid: String,
+) -> #(
+  Request(String),
+  fn(Int, String) -> Result(MeilisearchResponse(option.Option(Int)), Error),
+) {
+  let request =
+    create_base_request(
+      client,
+      "/indexes/" <> index_uid <> "/settings/search-cutoff-ms",
+    )
+    |> request.set_method(http.Get)
+  let parser = fn(status: Int, body: String) {
+    case status {
+      200 ->
+        case json.parse(body, decode.optional(decode.int)) {
+          Ok(cutoff) -> Ok(MeilisearchSingleResult(cutoff))
+          Error(error) -> Error(JsonError(error))
+        }
+      401 | 404 -> Error(meilisearch_error_from_json(body))
+      _ -> Error(UnexpectedHttpStatusCodeError(status, body))
+    }
+  }
+  #(request, parser)
+}
+
+/// Builds a request to update the search cutoff ms setting for the given index.
+///
+/// `searchCutoffMs` defines the maximum time in milliseconds Meilisearch will
+/// spend processing a search request before returning the best results found so far.
+/// The operation is asynchronous — Meilisearch enqueues it and returns a task.
+///
+/// Returns a tuple of the HTTP request and a parser function.
+/// The parser handles:
+/// - `202` — returns a `Task` with the enqueued task details
+/// - `401` — unauthorized (invalid or missing API key)
+/// - `404` — index not found
+///
+/// ## Example
+/// ```gleam
+/// let #(request, parser) = update_search_cutoff_ms(client, "movies", 150)
+/// ```
+pub fn update_search_cutoff_ms(
+  client: Client,
+  index_uid: String,
+  search_cutoff_ms: Int,
+) -> #(
+  Request(String),
+  fn(Int, String) -> Result(MeilisearchResponse(a), Error),
+) {
+  let body = json.int(search_cutoff_ms) |> json.to_string
+  let request =
+    create_base_request(
+      client,
+      "/indexes/" <> index_uid <> "/settings/search-cutoff-ms",
+    )
+    |> request.set_method(http.Put)
+    |> request.set_header("Content-Type", "application/json")
+    |> request.set_body(body)
+  #(request, task_parser)
+}
+
+/// Builds a request to reset the search cutoff ms setting for the given index to its default value.
+///
+/// The default value is `0` (no cutoff).
+/// The operation is asynchronous — Meilisearch enqueues it and returns a task.
+///
+/// Returns a tuple of the HTTP request and a parser function.
+/// The parser handles:
+/// - `202` — returns a `Task` with the enqueued task details
+/// - `401` — unauthorized (invalid or missing API key)
+/// - `404` — index not found
+///
+/// ## Example
+/// ```gleam
+/// let #(request, parser) = reset_search_cutoff_ms(client, "movies")
+/// ```
+pub fn reset_search_cutoff_ms(
+  client: Client,
+  index_uid: String,
+) -> #(
+  Request(String),
+  fn(Int, String) -> Result(MeilisearchResponse(a), Error),
+) {
+  let request =
+    create_base_request(
+      client,
+      "/indexes/" <> index_uid <> "/settings/search-cutoff-ms",
     )
     |> request.set_method(http.Delete)
   #(request, task_parser)
@@ -1180,7 +1242,7 @@ pub type Settings {
     faceting: Faceting,
     pagination: Pagination,
     embedders: Embedder,
-    search_cutoff_ms: Int,
+    search_cutoff_ms: option.Option(Int),
     localized_attribute: List(LocalizedAttribute),
     facet_search: Bool,
     prefix_search: PrefixSearch,
@@ -1390,7 +1452,10 @@ fn decode_settings() -> decode.Decoder(Settings) {
   })
 
   use embedders <- decode.field("embedders", decode_embedder())
-  use search_cutoff_ms <- decode.field("searchCutoffMs", decode.int)
+  use search_cutoff_ms <- decode.field(
+    "searchCutoffMs",
+    decode.optional(decode.int),
+  )
   use localized_attribute <- decode.field(
     "localizedAttributes",
     decode.list(decode_localized_attribute()),
@@ -1480,7 +1545,10 @@ fn settings_list_to_json(settings: Settings) -> String {
       #("faceting", faceting_to_json(settings.faceting)),
       #("pagination", pagination_to_json(settings.pagination)),
       #("embedders", embedder_to_json(settings.embedders)),
-      #("searchCutoffMs", json.int(settings.search_cutoff_ms)),
+      #("searchCutoffMs", case settings.search_cutoff_ms {
+        option.Some(search_cutoff_ms) -> json.int(search_cutoff_ms)
+        option.None -> json.null()
+      }),
       #(
         "localizedAttributes",
         json.array(settings.localized_attribute, localized_attribute_to_json),
@@ -1886,7 +1954,7 @@ fn ranking_rule_from_string(ranking_rule: String) -> RankingRule {
     "words" -> Words
     "typo" -> Typo
     "proximity" -> Proximity
-    "attribute" -> AttributeRank
+    "attributeRank" -> AttributeRank
     "sort" -> Sort
     "wordPosition" -> WordPosition
     "exactness" -> Exactness

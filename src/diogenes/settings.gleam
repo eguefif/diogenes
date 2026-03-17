@@ -23,13 +23,14 @@
 //// - [ ] Localized attributes - `/indexes/{indexUid}/settings/localized-attributes`
 //// - [ ] Embedders - `/indexes/{indexUid}/settings/embedders`
 //// - [ ] Proximity precision - `/indexes/{indexUid}/settings/proximity-precision`
-//// - [ ] Search cutoff ms - `/indexes/{indexUid}/settings/search-cutoff-ms`
+//// - [x] Search cutoff ms - `/indexes/{indexUid}/settings/search-cutoff-ms`
 //// - [ ] Facet search - `/indexes/{indexUid}/settings/facet-search`
 //// - [ ] Prefix search - `/indexes/{indexUid}/settings/prefix-search`
 //// - [x] Chat - `/indexes/{indexUid}/settings/chat`
 
 import diogenes.{type Client, type Error, type MeilisearchResponse}
 import diogenes/sansio/settings as sansio_settings
+import gleam/option
 import internal/http_tooling.{send_request}
 
 /// Resets all settings for the given index to their default values.
@@ -736,5 +737,73 @@ pub fn reset_ranking_rules(
 ) -> Result(MeilisearchResponse(task), Error) {
   let #(request, parser) =
     sansio_settings.reset_ranking_rules(client, index_uid)
+  send_request(request, [401, 404], parser)
+}
+
+/// Retrieves the search cutoff ms setting for the given index.
+///
+/// `searchCutoffMs` defines the maximum time in milliseconds Meilisearch will
+/// spend processing a search request before returning the best results found so far.
+/// The default value is `0` (no cutoff).
+///
+/// On success returns `Ok(MeilisearchSingleResult(Int))`.
+/// Errors include `MeilisearchError` for 401/404 responses and
+/// `TransportError` for network failures.
+///
+/// ## Example
+/// ```gleam
+/// let assert Ok(MeilisearchSingleResult(cutoff)) =
+///   get_search_cutoff_ms(client, "movies")
+/// ```
+pub fn get_search_cutoff_ms(
+  client: Client,
+  index_uid: String,
+) -> Result(MeilisearchResponse(option.Option(Int)), Error) {
+  let #(request, parser) =
+    sansio_settings.get_search_cutoff_ms(client, index_uid)
+  send_request(request, [401, 404], parser)
+}
+
+/// Updates the search cutoff ms setting for the given index.
+///
+/// `searchCutoffMs` defines the maximum time in milliseconds Meilisearch will
+/// spend processing a search request before returning the best results found so far.
+/// The operation is asynchronous — Meilisearch enqueues it and returns a `Task`.
+///
+/// On success returns `Ok(Task(...))`.
+///
+/// ## Example
+/// ```gleam
+/// let assert Ok(Task(task_uid: uid, ..)) =
+///   update_search_cutoff_ms(client, "movies", 150)
+/// ```
+pub fn update_search_cutoff_ms(
+  client: Client,
+  index_uid: String,
+  search_cutoff_ms: Int,
+) -> Result(MeilisearchResponse(task), Error) {
+  let #(request, parser) =
+    sansio_settings.update_search_cutoff_ms(client, index_uid, search_cutoff_ms)
+  send_request(request, [401, 404], parser)
+}
+
+/// Resets the search cutoff ms setting for the given index to its default value.
+///
+/// The default value is `0` (no cutoff).
+/// The operation is asynchronous — Meilisearch enqueues it and returns a `Task`.
+///
+/// On success returns `Ok(Task(...))`.
+///
+/// ## Example
+/// ```gleam
+/// let assert Ok(Task(task_uid: uid, ..)) =
+///   reset_search_cutoff_ms(client, "movies")
+/// ```
+pub fn reset_search_cutoff_ms(
+  client: Client,
+  index_uid: String,
+) -> Result(MeilisearchResponse(task), Error) {
+  let #(request, parser) =
+    sansio_settings.reset_search_cutoff_ms(client, index_uid)
   send_request(request, [401, 404], parser)
 }

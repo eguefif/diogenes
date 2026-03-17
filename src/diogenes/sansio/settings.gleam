@@ -14,6 +14,33 @@ import internal/http_tooling.{create_base_request}
 
 // Api functions ---------------------------------------------------------------------------
 
+/// Builds a request to reset all settings for the given index to their default values.
+///
+/// The operation is asynchronous — Meilisearch enqueues it and returns a task.
+///
+/// Returns a tuple of the HTTP request and a parser function.
+/// The parser handles:
+/// - `202` — returns a `Task` with the enqueued task details
+/// - `401` — unauthorized (invalid or missing API key)
+/// - `404` — index not found
+///
+/// ## Example
+/// ```gleam
+/// let #(request, parser) = reset_all_settings(client, "movies")
+/// ```
+pub fn reset_all_settings(
+  client: Client,
+  index_uid: String,
+) -> #(
+  Request(String),
+  fn(Int, String) -> Result(MeilisearchResponse(task), Error),
+) {
+  let request =
+    create_base_request(client, "/indexes/" <> index_uid <> "/settings")
+    |> request.set_method(http.Delete)
+  #(request, task_parser)
+}
+
 /// Builds a request to retrieve all settings for the given index.
 ///
 /// Returns a tuple of the HTTP request and a parser function.

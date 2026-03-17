@@ -22,7 +22,7 @@ Meilisearch and Diogenes is your Gleam library that wraps all the HTTP calls for
 | Batches | 0% |
 | Keys | 0% |
 | Settings | 40% |
-| Management | 0% |
+| Management | 5% |
 
 ## Example
 ```gleam

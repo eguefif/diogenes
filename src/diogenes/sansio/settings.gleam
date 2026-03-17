@@ -76,6 +76,8 @@ pub fn update_all_settings(
   #(request, task_parser)
 }
 
+// Types ---------------------------------------------------------------------------------------------
+
 pub type Settings {
   Settings(
     displayed_attributes: List(String),
@@ -182,9 +184,10 @@ pub type Embedder {
     response: Dict(String, String),
     // Not for this one
     headers: Dict(String, String),
-    search_embedder: Embedder,
-    indexing_embedder: Embedder,
+    search_embedder: option.Option(Embedder),
+    indexing_embedder: option.Option(Embedder),
     distribution: Distribution,
+    chat: Chat,
   )
 }
 
@@ -206,16 +209,42 @@ pub type EmbedderPooling {
 }
 
 pub type Distribution {
-  Distribution(current_mean: Int, current_sigma: Int)
+  Distribution(current_mean: Float, current_sigma: Float)
 }
 
-//TODO: 
-// - [ ] create all types for each object settings
-// - [ ] create corresponding json decoder
-// - [ ] Then create Settings type that gather them all and its decoder
-// - [ ] Filterable: handle object attributes
+pub type Chat {
+  Chat(
+    description: String,
+    document_template: String,
+    document_template_max_bytes: Int,
+    search_parameters: ChatSearchParameters,
+  )
+}
 
-// Settings decoding function/json --------------------------------------------------------------
+pub type ChatSearchParameters {
+  ChatSearchParameters(
+    hybrid: ChatEmbedder,
+    limit: Int,
+    sort: List(String),
+    distinct: String,
+    matching_strategy: ChatMatchingStrategy,
+    attributes_to_search_on: List(String),
+    ranking_score_threshold: Float,
+  )
+}
+
+pub type ChatEmbedder {
+  ChatEmbedder(embedder: String, semantic_ratio: Float)
+}
+
+pub type ChatMatchingStrategy {
+  Last
+  All
+  Frequency
+  UnexpectedChatMatchingStrategy
+}
+
+// Settings decoding function/json --------------------------------------------------------------------------
 
 fn settings_list_from_json(
   settings: String,
@@ -373,7 +402,7 @@ fn settings_list_to_json(settings: Settings) -> String {
 
       #("faceting", faceting_to_json(settings.faceting)),
       #("pagination", pagination_to_json(settings.pagination)),
-      #("embedders", embedders_to_json(settings.embedders)),
+      #("embedders", embedder_to_json(settings.embedders)),
       #("searchCutoffMs", json.int(settings.search_cutoff_ms)),
       #(
         "localizedAttributes",
@@ -481,13 +510,20 @@ fn decode_embedder() -> decode.Decoder(Embedder) {
     "headers",
     decode.dict(decode.string, decode.string),
   )
-  use search_embedder <- decode.field("searchEmbedder", decode_embedder())
-  use indexing_embedder <- decode.field("indexingEmbedder", decode_embedder())
+  use search_embedder <- decode.field(
+    "searchEmbedder",
+    decode.optional(decode_embedder()),
+  )
+  use indexing_embedder <- decode.field(
+    "indexingEmbedder",
+    decode.optional(decode_embedder()),
+  )
   use distribution <- decode.field("distribution", {
-    use current_mean <- decode.field("currentMean", decode.int)
-    use current_sigma <- decode.field("currentSigma", decode.int)
+    use current_mean <- decode.field("currentMean", decode.float)
+    use current_sigma <- decode.field("currentSigma", decode.float)
     decode.success(Distribution(current_mean:, current_sigma:))
   })
+  use chat <- decode.field("chat", decode_chat())
 
   decode.success(Embedder(
     source:,
@@ -508,6 +544,7 @@ fn decode_embedder() -> decode.Decoder(Embedder) {
     search_embedder:,
     indexing_embedder:,
     distribution:,
+    chat:,
   ))
 }
 
@@ -532,7 +569,7 @@ fn decode_source(value: String) -> EmbedderSource {
   }
 }
 
-fn embedders_to_json(embedder: Embedder) -> json.Json {
+fn embedder_to_json(embedder: Embedder) -> json.Json {
   json.object([
     #("source", embedder_source_to_json(embedder.source)),
     #("model", json.string(embedder.model)),
@@ -572,9 +609,16 @@ fn embedders_to_json(embedder: Embedder) -> json.Json {
       "headers",
       json.dict(embedder.headers, fn(k) { k }, fn(v) { json.string(v) }),
     ),
-    #("searchEmbedder", embedders_to_json(embedder.search_embedder)),
-    #("indexingEmbedder", embedders_to_json(embedder.indexing_embedder)),
+    #("searchEmbedder", case embedder.search_embedder {
+      option.Some(embedder) -> embedder_to_json(embedder)
+      option.None -> json.null()
+    }),
+    #("indexingEmbedder", case embedder.indexing_embedder {
+      option.Some(embedder) -> embedder_to_json(embedder)
+      option.None -> json.null()
+    }),
     #("distribution", distribution_to_json(embedder.distribution)),
+    #("chat", chat_to_json(embedder.chat)),
   ])
 }
 
@@ -601,9 +645,117 @@ fn embedder_source_to_json(source: EmbedderSource) -> json.Json {
 
 fn distribution_to_json(distribution: Distribution) -> json.Json {
   json.object([
-    #("currentMean", json.int(distribution.current_mean)),
-    #("currentSigma", json.int(distribution.current_sigma)),
+    #("currentMean", json.float(distribution.current_mean)),
+    #("currentSigma", json.float(distribution.current_sigma)),
   ])
+}
+
+fn decode_chat() -> decode.Decoder(Chat) {
+  use description <- decode.field("description", decode.string)
+  use document_template <- decode.field("documentTemplate", decode.string)
+  use document_template_max_bytes <- decode.field(
+    "documentTemplateMaxBytes",
+    decode.int,
+  )
+  use search_parameters <- decode.field(
+    "searchParameters",
+    decode_chat_search_parameters(),
+  )
+  decode.success(Chat(
+    description:,
+    document_template:,
+    document_template_max_bytes:,
+    search_parameters:,
+  ))
+}
+
+fn decode_chat_search_parameters() -> decode.Decoder(ChatSearchParameters) {
+  use hybrid <- decode.field("hybrid", decode_chat_embedder())
+  use limit <- decode.field("limit", decode.int)
+  use sort <- decode.field("sort", decode.list(decode.string))
+  use distinct <- decode.field("distinct", decode.string)
+  use matching_strategy <- decode.field(
+    "matchingStrategy",
+    decode.string |> decode.map(chat_matching_strategy_from_string),
+  )
+  use attributes_to_search_on <- decode.field(
+    "attributesToSearchOn",
+    decode.list(decode.string),
+  )
+  use ranking_score_threshold <- decode.field(
+    "rankingScoreThreshold",
+    decode.float,
+  )
+  decode.success(ChatSearchParameters(
+    hybrid:,
+    limit:,
+    sort:,
+    distinct:,
+    matching_strategy:,
+    attributes_to_search_on:,
+    ranking_score_threshold:,
+  ))
+}
+
+fn decode_chat_embedder() -> decode.Decoder(ChatEmbedder) {
+  use embedder <- decode.field("embedder", decode.string)
+  use semantic_ratio <- decode.field("semanticRatio", decode.float)
+  decode.success(ChatEmbedder(embedder:, semantic_ratio:))
+}
+
+fn chat_matching_strategy_from_string(value: String) -> ChatMatchingStrategy {
+  case value {
+    "last" -> Last
+    "all" -> All
+    "frequency" -> Frequency
+    _ -> UnexpectedChatMatchingStrategy
+  }
+}
+
+fn chat_to_json(chat: Chat) -> json.Json {
+  json.object([
+    #("description", json.string(chat.description)),
+    #("documentTemplate", json.string(chat.document_template)),
+    #("documentTemplateMaxBytes", json.int(chat.document_template_max_bytes)),
+    #(
+      "searchParameters",
+      chat_search_parameters_to_json(chat.search_parameters),
+    ),
+  ])
+}
+
+fn chat_search_parameters_to_json(params: ChatSearchParameters) -> json.Json {
+  json.object([
+    #("hybrid", chat_embedder_to_json(params.hybrid)),
+    #("limit", json.int(params.limit)),
+    #("sort", json.array(params.sort, json.string)),
+    #("distinct", json.string(params.distinct)),
+    #(
+      "matchingStrategy",
+      chat_matching_strategy_to_json(params.matching_strategy),
+    ),
+    #(
+      "attributesToSearchOn",
+      json.array(params.attributes_to_search_on, json.string),
+    ),
+    #("rankingScoreThreshold", json.float(params.ranking_score_threshold)),
+  ])
+}
+
+fn chat_embedder_to_json(chat_embedder: ChatEmbedder) -> json.Json {
+  json.object([
+    #("embedder", json.string(chat_embedder.embedder)),
+    #("semanticRatio", json.float(chat_embedder.semantic_ratio)),
+  ])
+}
+
+fn chat_matching_strategy_to_json(strategy: ChatMatchingStrategy) -> json.Json {
+  case strategy {
+    Last -> json.string("last")
+    All -> json.string("all")
+    Frequency -> json.string("frequency")
+    UnexpectedChatMatchingStrategy -> json.null()
+  }
 }
 
 fn decode_faceting() -> decode.Decoder(Faceting) {

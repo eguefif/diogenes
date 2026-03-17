@@ -242,3 +242,67 @@ pub fn reset_dictionary(
   let #(request, parser) = sansio_settings.reset_dictionary(client, index_uid)
   send_request(request, [401, 404], parser)
 }
+
+/// Retrieves the displayed attributes setting for the given index.
+///
+/// Displayed attributes are the fields returned in search results.
+///
+/// On success returns `Ok(MeilisearchSingleResult(List(String)))`.
+/// Errors include `MeilisearchError` for 401/404 responses and
+/// `TransportError` for network failures.
+///
+/// ## Example
+/// ```gleam
+/// let assert Ok(MeilisearchSingleResult(attributes)) =
+///   get_displayed_attributes(client, "movies")
+/// ```
+pub fn get_displayed_attributes(
+  client: Client,
+  index_uid: String,
+) -> Result(MeilisearchResponse(List(String)), Error) {
+  let #(request, parser) =
+    sansio_settings.get_displayed_attributes(client, index_uid)
+  send_request(request, [401, 404], parser)
+}
+
+/// Updates the displayed attributes setting for the given index.
+///
+/// Displayed attributes are the fields returned in search results.
+/// The operation is asynchronous — Meilisearch enqueues it and returns a `Task`.
+///
+/// On success returns `Ok(Task(...))`.
+///
+/// ## Example
+/// ```gleam
+/// let assert Ok(Task(task_uid: uid, ..)) =
+///   update_displayed_attributes(client, "movies", ["title", "overview"])
+/// ```
+pub fn update_displayed_attributes(
+  client: Client,
+  index_uid: String,
+  attributes: List(String),
+) -> Result(MeilisearchResponse(task), Error) {
+  let #(request, parser) =
+    sansio_settings.update_displayed_attributes(client, index_uid, attributes)
+  send_request(request, [401, 404], parser)
+}
+
+/// Resets the displayed attributes setting for the given index to its default value.
+///
+/// The operation is asynchronous — Meilisearch enqueues it and returns a `Task`.
+///
+/// On success returns `Ok(Task(...))`.
+///
+/// ## Example
+/// ```gleam
+/// let assert Ok(Task(task_uid: uid, ..)) =
+///   reset_displayed_attributes(client, "movies")
+/// ```
+pub fn reset_displayed_attributes(
+  client: Client,
+  index_uid: String,
+) -> Result(MeilisearchResponse(task), Error) {
+  let #(request, parser) =
+    sansio_settings.reset_displayed_attributes(client, index_uid)
+  send_request(request, [401, 404], parser)
+}

@@ -12,6 +12,8 @@ import gleam/option
 import gleam/result
 import internal/http_tooling.{create_base_request}
 
+// Api functions ---------------------------------------------------------------------------
+
 /// Builds a request to retrieve all settings for the given index.
 ///
 /// Returns a tuple of the HTTP request and a parser function.
@@ -73,6 +75,101 @@ pub fn update_all_settings(
     |> request.set_method(http.Patch)
     |> request.set_header("Content-Type", "application/json")
     |> request.set_body(body)
+  #(request, task_parser)
+}
+
+/// Builds a request to retrieve the chat settings for the given index.
+///
+/// Returns a tuple of the HTTP request and a parser function.
+/// The parser handles:
+/// - `200` — returns a `MeilisearchSingleResult(Chat)`
+/// - `401` — unauthorized (invalid or missing API key)
+/// - `404` — index not found
+///
+/// ## Example
+/// ```gleam
+/// let #(request, parser) = get_chat(client, "movies")
+/// ```
+pub fn get_chat(
+  client: Client,
+  index_uid: String,
+) -> #(
+  Request(String),
+  fn(Int, String) -> Result(MeilisearchResponse(Chat), Error),
+) {
+  let request =
+    create_base_request(client, "/indexes/" <> index_uid <> "/settings/chat")
+    |> request.set_method(http.Get)
+  let parser = fn(status: Int, body: String) {
+    case status {
+      200 ->
+        case json.parse(body, decode_chat()) {
+          Ok(chat_params) -> Ok(MeilisearchSingleResult(chat_params))
+          Error(error) -> Error(JsonError(error))
+        }
+      401 | 404 -> Error(meilisearch_error_from_json(body))
+      _ -> Error(UnexpectedHttpStatusCodeError(status, body))
+    }
+  }
+  #(request, parser)
+}
+
+/// Builds a request to update the chat settings for the given index.
+///
+/// Configures how the index is presented to the LLM, including description,
+/// document template, and search parameters. The operation is asynchronous —
+/// Meilisearch enqueues it and returns a task.
+///
+/// Returns a tuple of the HTTP request and a parser function.
+/// The parser handles:
+/// - `202` — returns a `Task` with the enqueued task details
+/// - `401` — unauthorized (invalid or missing API key)
+/// - `404` — index not found
+///
+/// ## Example
+/// ```gleam
+/// let #(request, parser) = update_chat(client, "movies", chat_settings)
+/// ```
+pub fn update_chat(
+  client: Client,
+  index_uid: String,
+  chat_settings: Chat,
+) -> #(
+  Request(String),
+  fn(Int, String) -> Result(MeilisearchResponse(task), Error),
+) {
+  let request =
+    create_base_request(client, "/indexes/" <> index_uid <> "/settings/chat")
+    |> request.set_method(http.Patch)
+    |> request.set_header("Content-Type", "application/json")
+    |> request.set_body(json.to_string(chat_to_json(chat_settings)))
+  #(request, task_parser)
+}
+
+/// Builds a request to reset the chat settings for the given index to their default values.
+///
+/// The operation is asynchronous — Meilisearch enqueues it and returns a task.
+///
+/// Returns a tuple of the HTTP request and a parser function.
+/// The parser handles:
+/// - `202` — returns a `Task` with the enqueued task details
+/// - `401` — unauthorized (invalid or missing API key)
+/// - `404` — index not found
+///
+/// ## Example
+/// ```gleam
+/// let #(request, parser) = reset_chat(client, "movies")
+/// ```
+pub fn reset_chat(
+  client: Client,
+  index_uid: String,
+) -> #(
+  Request(String),
+  fn(Int, String) -> Result(MeilisearchResponse(task), Error),
+) {
+  let request =
+    create_base_request(client, "/indexes/" <> index_uid <> "/settings/chat")
+    |> request.set_method(http.Delete)
   #(request, task_parser)
 }
 
@@ -229,7 +326,7 @@ pub type ChatSearchParameters {
     distinct: String,
     matching_strategy: ChatMatchingStrategy,
     attributes_to_search_on: List(String),
-    ranking_score_threshold: Float,
+    ranking_score_threshold: option.Option(Float),
   )
 }
 
@@ -684,7 +781,7 @@ fn decode_chat_search_parameters() -> decode.Decoder(ChatSearchParameters) {
   )
   use ranking_score_threshold <- decode.field(
     "rankingScoreThreshold",
-    decode.float,
+    decode.optional(decode.float),
   )
   decode.success(ChatSearchParameters(
     hybrid:,
@@ -738,7 +835,11 @@ fn chat_search_parameters_to_json(params: ChatSearchParameters) -> json.Json {
       "attributesToSearchOn",
       json.array(params.attributes_to_search_on, json.string),
     ),
-    #("rankingScoreThreshold", json.float(params.ranking_score_threshold)),
+    #("rankingScoreThreshold", case params.ranking_score_threshold {
+      option.Some(ranking_score_threshold) ->
+        json.float(ranking_score_threshold)
+      option.None -> json.null()
+    }),
   ])
 }
 

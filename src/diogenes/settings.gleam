@@ -117,3 +117,64 @@ pub fn update_all_settings(
     sansio_settings.update_all_settings(client, index_uid, settings)
   send_request(request, [401, 404], parser)
 }
+
+/// Retrieves the chat settings for the given index.
+///
+/// On success returns `Ok(MeilisearchSingleResult(Chat))`.
+/// Errors include `MeilisearchError` for 401/404 responses and
+/// `TransportError` for network failures.
+///
+/// ## Example
+/// ```gleam
+/// let assert Ok(MeilisearchSingleResult(chat)) =
+///   get_chat(client, "movies")
+/// ```
+pub fn get_chat(
+  client: Client,
+  index_uid: String,
+) -> Result(MeilisearchResponse(sansio_settings.Chat), Error) {
+  let #(request, parser) = sansio_settings.get_chat(client, index_uid)
+  send_request(request, [401, 404], parser)
+}
+
+/// Updates the chat settings for the given index.
+///
+/// Configures how the index is presented to the LLM, including the description,
+/// document template, and search parameters. The operation is asynchronous —
+/// Meilisearch enqueues it and returns a `Task`.
+///
+/// On success returns `Ok(Task(...))`.
+///
+/// ## Example
+/// ```gleam
+/// let assert Ok(Task(task_uid: uid, ..)) =
+///   update_chat(client, "movies", chat_settings)
+/// ```
+pub fn update_chat(
+  client: Client,
+  index_uid: String,
+  chat_settings: sansio_settings.Chat,
+) -> Result(MeilisearchResponse(task), Error) {
+  let #(request, parser) =
+    sansio_settings.update_chat(client, index_uid, chat_settings)
+  send_request(request, [401, 404], parser)
+}
+
+/// Resets the chat settings for the given index to their default values.
+///
+/// The operation is asynchronous — Meilisearch enqueues it and returns a `Task`.
+///
+/// On success returns `Ok(Task(...))`.
+///
+/// ## Example
+/// ```gleam
+/// let assert Ok(Task(task_uid: uid, ..)) =
+///   reset_chat(client, "movies")
+/// ```
+pub fn reset_chat(
+  client: Client,
+  index_uid: String,
+) -> Result(MeilisearchResponse(task), Error) {
+  let #(request, parser) = sansio_settings.reset_chat(client, index_uid)
+  send_request(request, [401, 404], parser)
+}

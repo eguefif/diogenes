@@ -1,5 +1,46 @@
 # Diogenes - API Coverage TODO
 
+## Progress with associated coef to V1
+| Section | Progress | Part of overal |
+|---|---| --- |
+| Overall | 47% | 45.5/97 |
+| --- | --- | --- |
+| Index | 100% | 7/7 | 
+| Documents | 85% | 8.5/10 |
+| Search | 0% | 0/2 |
+| Multi-search | 0% | 0/1 |
+| Facet search | 0% | 0/1 |
+| Similar document search | 0% | 0/2 |
+| Settings | 40% | 30/69 |
+| Keys | 0% | 0/5 |
+
+## Roadmap
+
+### Features for v1.0
+- index
+- Search
+- Multi-search
+- Facet search
+- Similar document search
+- Settings
+- keys
+
+### Features for v2.0
+- management
+- keys
+- Tasks
+- Batches
+- Chats
+
+| Section | Progress | Part of overal |
+|---|---| --- |
+| Overall | 0% | 0/41 |
+| --- | --- | --- |
+| Chats | 0% | 0/7 |
+| Tasks | 0% | 0/5 |
+| Batches | 0% | 0/2 |
+| Management | 5% | 1/22 |
+
 ## Health
 
 - [x] Get health - `GET /health`

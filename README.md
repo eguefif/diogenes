@@ -5,24 +5,8 @@
 > -- Claude --
 
 You might not be as lost as Diogenes, but it's always good to have a lantern to look for documents, this one is called 
-Meilisearch and Diogenes is your Gleam library that wraps all the HTTP calls for you.
+Meilisearch and Diogenes is your Gleam library that rules them all the HTTP calls for you.
 
-## Progress
-
-| Section | Progress |
-|---|---|
-| Index | 100% |
-| Documents | 85% |
-| Search | 0% |
-| Multi-search | 0% |
-| Facet search | 0% |
-| Similar document search | 0% |
-| Chats | 0% |
-| Tasks | 0% |
-| Batches | 0% |
-| Keys | 0% |
-| Settings | 40% |
-| Management | 5% |
 
 ## Example
 ```gleam
@@ -82,5 +66,37 @@ Further documentation can be found at <https://hexdocs.pm/diogenes>.
 
 
 ## Development
+
+### Progress toward V1
+| Section | Progress | Items Count |
+|---|---| --- |
+| Overall | 47% | 45.5/97 |
+| --- | --- | --- |
+| Index | 100% | 7/7 | 
+| Documents | 85% | 8.5/10 |
+| Search | 0% | 0/2 |
+| Multi-search | 0% | 0/1 |
+| Facet search | 0% | 0/1 |
+| Similar document search | 0% | 0/2 |
+| Settings | 40% | 30/69 |
+| Keys | 0% | 0/5 |
+
+### Roadmap
+
+#### Features for v1.0
+- index
+- Search
+- Multi-search
+- Facet search
+- Similar document search
+- Settings
+- keys
+
+#### Features for v2.0
+- management
+- keys
+- Tasks
+- Batches
+- Chats
 
 If you want to contribute, there is a [test project](https://github.com/eguefif/diogenes_test) that setup a meilisearch docker. Nothing fancy, The tester will only run as many requests as it needs for all the functions in the library.

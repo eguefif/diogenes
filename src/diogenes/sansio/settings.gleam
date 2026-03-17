@@ -1052,6 +1052,7 @@ pub type Settings {
   Settings(
     displayed_attributes: List(String),
     searchable_attributes: List(String),
+    // TODO: fiterable_attributes can also be object
     filterable_attributes: List(String),
     sortable_attributes: List(String),
     foreign_keys: List(ForeignKey),

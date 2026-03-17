@@ -13,7 +13,7 @@
 //// - [x] Ranking rules - `/indexes/{indexUid}/settings/ranking-rules`
 //// - [x] Stop words - `/indexes/{indexUid}/settings/stop-words`
 //// - [ ] Synonyms - `/indexes/{indexUid}/settings/synonyms`
-//// - [ ] Distinct attribute - `/indexes/{indexUid}/settings/distinct-attribute`
+//// - [x] Distinct attribute - `/indexes/{indexUid}/settings/distinct-attribute`
 //// - [ ] Typo tolerance - `/indexes/{indexUid}/settings/typo-tolerance`
 //// - [ ] Faceting - `/indexes/{indexUid}/settings/faceting`
 //// - [ ] Pagination - `/indexes/{indexUid}/settings/pagination`
@@ -819,6 +819,67 @@ pub fn reset_search_cutoff_ms(
 /// let assert Ok(MeilisearchSingleResult(enabled)) =
 ///   get_facet_search(client, "movies")
 /// ```
+/// Retrieves the distinct attribute setting for the given index.
+///
+/// On success returns `Ok(MeilisearchSingleResult(Option(String)))`.
+/// Errors include `MeilisearchError` for 401/404 responses and
+/// `TransportError` for network failures.
+///
+/// ## Example
+/// ```gleam
+/// let assert Ok(MeilisearchSingleResult(attribute)) =
+///   get_distinct_attribute(client, "movies")
+/// ```
+pub fn get_distinct_attribute(
+  client: Client,
+  index_uid: String,
+) -> Result(MeilisearchResponse(option.Option(String)), Error) {
+  let #(request, parser) =
+    sansio_settings.get_distinct_attribute(client, index_uid)
+  send_request(request, [401, 404], parser)
+}
+
+/// Updates the distinct attribute setting for the given index.
+///
+/// The operation is asynchronous — Meilisearch enqueues it and returns a `Task`.
+///
+/// On success returns `Ok(Task(...))`.
+///
+/// ## Example
+/// ```gleam
+/// let assert Ok(Task(task_uid: uid, ..)) =
+///   update_distinct_attribute(client, "movies", "movie_id")
+/// ```
+pub fn update_distinct_attribute(
+  client: Client,
+  index_uid: String,
+  distinct_attribute: String,
+) -> Result(MeilisearchResponse(task), Error) {
+  let #(request, parser) =
+    sansio_settings.update_distinct_attribute(client, index_uid, distinct_attribute)
+  send_request(request, [401, 404], parser)
+}
+
+/// Resets the distinct attribute setting for the given index to its default value.
+///
+/// The operation is asynchronous — Meilisearch enqueues it and returns a `Task`.
+///
+/// On success returns `Ok(Task(...))`.
+///
+/// ## Example
+/// ```gleam
+/// let assert Ok(Task(task_uid: uid, ..)) =
+///   reset_distinct_attribute(client, "movies")
+/// ```
+pub fn reset_distinct_attribute(
+  client: Client,
+  index_uid: String,
+) -> Result(MeilisearchResponse(task), Error) {
+  let #(request, parser) =
+    sansio_settings.reset_distinct_attribute(client, index_uid)
+  send_request(request, [401, 404], parser)
+}
+
 pub fn get_facet_search(
   client: Client,
   index_uid: String,

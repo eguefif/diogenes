@@ -1250,6 +1250,21 @@ pub fn reset_filterable_attributes(
   #(request, task_parser)
 }
 
+/// Builds a request to retrieve the ranking rules setting for the given index.
+///
+/// Returns a tuple of the HTTP request and a parser function.
+/// The parser handles:
+/// - `200` — returns a `MeilisearchSingleResult(List(RankingRule))`
+/// - `401` — unauthorized (invalid or missing API key)
+/// - `404` — index not found
+///
+/// ## Example
+/// ```gleam
+/// let #(request, parser) = get_ranking_rules(client, "movies")
+/// ```
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/get-ranking-rules
 pub fn get_ranking_rules(
   client: Client,
   index_uid: String,
@@ -1278,6 +1293,23 @@ pub fn get_ranking_rules(
   #(request, parser)
 }
 
+/// Builds a request to update the ranking rules setting for the given index.
+///
+/// The operation is asynchronous — Meilisearch enqueues it and returns a task.
+///
+/// Returns a tuple of the HTTP request and a parser function.
+/// The parser handles:
+/// - `202` — returns a `Task` with the enqueued task details
+/// - `401` — unauthorized (invalid or missing API key)
+/// - `404` — index not found
+///
+/// ## Example
+/// ```gleam
+/// let #(request, parser) = update_ranking_rules(client, "movies", ranking_rules)
+/// ```
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/update-ranking-rules
 pub fn update_ranking_rules(
   client: Client,
   index_uid: String,
@@ -1298,6 +1330,23 @@ pub fn update_ranking_rules(
   #(request, task_parser)
 }
 
+/// Builds a request to reset the ranking rules setting for the given index to its default value.
+///
+/// The operation is asynchronous — Meilisearch enqueues it and returns a task.
+///
+/// Returns a tuple of the HTTP request and a parser function.
+/// The parser handles:
+/// - `202` — returns a `Task` with the enqueued task details
+/// - `401` — unauthorized (invalid or missing API key)
+/// - `404` — index not found
+///
+/// ## Example
+/// ```gleam
+/// let #(request, parser) = reset_ranking_rules(client, "movies")
+/// ```
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/reset-ranking-rules
 pub fn reset_ranking_rules(
   client: Client,
   index_uid: String,
@@ -1529,6 +1578,9 @@ pub fn update_foreign_keys(
 /// ```gleam
 /// let #(request, parser) = reset_foreign_keys(client, "movies")
 /// ```
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/reset-foreign-keys
 pub fn reset_foreign_keys(
   client: Client,
   index_uid: String,
@@ -1557,6 +1609,9 @@ pub fn reset_foreign_keys(
 /// ```gleam
 /// let #(request, parser) = get_prefix_search(client, "movies")
 /// ```
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/get-prefix-search
 pub fn get_prefix_search(
   client: Client,
   index_uid: String,
@@ -1603,6 +1658,9 @@ pub fn get_prefix_search(
 /// ```gleam
 /// let #(request, parser) = update_prefix_search(client, "movies", IndexTime)
 /// ```
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/update-prefix-search
 pub fn update_prefix_search(
   client: Client,
   index_uid: String,
@@ -1637,6 +1695,9 @@ pub fn update_prefix_search(
 /// ```gleam
 /// let #(request, parser) = reset_prefix_search(client, "movies")
 /// ```
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/reset-prefix-search
 pub fn reset_prefix_search(
   client: Client,
   index_uid: String,
@@ -1665,6 +1726,9 @@ pub fn reset_prefix_search(
 /// ```gleam
 /// let #(request, parser) = get_proximity_precision(client, "movies")
 /// ```
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/get-proximity-precision
 pub fn get_proximity_precision(
   client: Client,
   index_uid: String,
@@ -1711,6 +1775,9 @@ pub fn get_proximity_precision(
 /// ```gleam
 /// let #(request, parser) = update_proximity_precision(client, "movies", ByWord)
 /// ```
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/update-proximity-precision
 pub fn update_proximity_precision(
   client: Client,
   index_uid: String,
@@ -1745,6 +1812,9 @@ pub fn update_proximity_precision(
 /// ```gleam
 /// let #(request, parser) = reset_proximity_precision(client, "movies")
 /// ```
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/reset-proximity-precision
 pub fn reset_proximity_precision(
   client: Client,
   index_uid: String,
@@ -1773,6 +1843,9 @@ pub fn reset_proximity_precision(
 /// ```gleam
 /// let #(request, parser) = get_localized_attributes(client, "movies")
 /// ```
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/get-localized-attributes
 pub fn get_localized_attributes(
   client: Client,
   index_uid: String,
@@ -1820,6 +1893,9 @@ pub fn get_localized_attributes(
 /// ```gleam
 /// let #(request, parser) = update_localized_attributes(client, "movies", attributes)
 /// ```
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/update-localized-attributes
 pub fn update_localized_attributes(
   client: Client,
   index_uid: String,
@@ -1855,6 +1931,9 @@ pub fn update_localized_attributes(
 /// ```gleam
 /// let #(request, parser) = reset_localized_attributes(client, "movies")
 /// ```
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/reset-localized-attributes
 pub fn reset_localized_attributes(
   client: Client,
   index_uid: String,
@@ -1883,6 +1962,9 @@ pub fn reset_localized_attributes(
 /// ```gleam
 /// let #(request, parser) = get_pagination(client, "movies")
 /// ```
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/get-pagination
 pub fn get_pagination(
   client: Client,
   index_uid: String,
@@ -1929,6 +2011,9 @@ pub fn get_pagination(
 /// ```gleam
 /// let #(request, parser) = update_pagination(client, "movies", pagination)
 /// ```
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/update-pagination
 pub fn update_pagination(
   client: Client,
   index_uid: String,
@@ -1963,6 +2048,9 @@ pub fn update_pagination(
 /// ```gleam
 /// let #(request, parser) = reset_pagination(client, "movies")
 /// ```
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/reset-pagination
 pub fn reset_pagination(
   client: Client,
   index_uid: String,
@@ -1991,6 +2079,9 @@ pub fn reset_pagination(
 /// ```gleam
 /// let #(request, parser) = get_faceting(client, "movies")
 /// ```
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/get-faceting
 pub fn get_faceting(
   client: Client,
   index_uid: String,
@@ -2032,6 +2123,9 @@ pub fn get_faceting(
 /// ```gleam
 /// let #(request, parser) = update_faceting(client, "movies", faceting)
 /// ```
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/update-faceting
 pub fn update_faceting(
   client: Client,
   index_uid: String,
@@ -2066,6 +2160,9 @@ pub fn update_faceting(
 /// ```gleam
 /// let #(request, parser) = reset_faceting(client, "movies")
 /// ```
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/reset-faceting
 pub fn reset_faceting(
   client: Client,
   index_uid: String,
@@ -2094,6 +2191,9 @@ pub fn reset_faceting(
 /// ```gleam
 /// let #(request, parser) = get_typo_tolerance(client, "movies")
 /// ```
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/get-typo-tolerance
 pub fn get_typo_tolerance(
   client: Client,
   index_uid: String,
@@ -2135,6 +2235,9 @@ pub fn get_typo_tolerance(
 /// ```gleam
 /// let #(request, parser) = update_typo_tolerance(client, "movies", typo_tolerance)
 /// ```
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/update-typo-tolerance
 pub fn update_typo_tolerance(
   client: Client,
   index_uid: String,
@@ -2169,6 +2272,9 @@ pub fn update_typo_tolerance(
 /// ```gleam
 /// let #(request, parser) = reset_typo_tolerance(client, "movies")
 /// ```
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/reset-typo-tolerance
 pub fn reset_typo_tolerance(
   client: Client,
   index_uid: String,
@@ -2197,6 +2303,9 @@ pub fn reset_typo_tolerance(
 /// ```gleam
 /// let #(request, parser) = get_synonyms(client, "movies")
 /// ```
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/get-synonyms
 pub fn get_synonyms(
   client: Client,
   index_uid: String,
@@ -2244,6 +2353,9 @@ pub fn get_synonyms(
 /// ```gleam
 /// let #(request, parser) = update_synonyms(client, "movies", dict.from_list([#("wolverine", ["xmen", "logan"])]))
 /// ```
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/update-synonyms
 pub fn update_synonyms(
   client: Client,
   index_uid: String,
@@ -2280,6 +2392,9 @@ pub fn update_synonyms(
 /// ```gleam
 /// let #(request, parser) = reset_synonyms(client, "movies")
 /// ```
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/reset-synonyms
 pub fn reset_synonyms(
   client: Client,
   index_uid: String,
@@ -2308,6 +2423,9 @@ pub fn reset_synonyms(
 /// ```gleam
 /// let #(request, parser) = get_distinct_attribute(client, "movies")
 /// ```
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/get-distinct-attribute
 pub fn get_distinct_attribute(
   client: Client,
   index_uid: String,
@@ -2349,6 +2467,9 @@ pub fn get_distinct_attribute(
 /// ```gleam
 /// let #(request, parser) = update_distinct_attribute(client, "movies", "movie_id")
 /// ```
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/update-distinct-attribute
 pub fn update_distinct_attribute(
   client: Client,
   index_uid: String,
@@ -2383,6 +2504,9 @@ pub fn update_distinct_attribute(
 /// ```gleam
 /// let #(request, parser) = reset_distinct_attribute(client, "movies")
 /// ```
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/reset-distinct-attribute
 pub fn reset_distinct_attribute(
   client: Client,
   index_uid: String,
@@ -2411,6 +2535,9 @@ pub fn reset_distinct_attribute(
 /// ```gleam
 /// let #(request, parser) = get_facet_search(client, "movies")
 /// ```
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/get-facet-search
 pub fn get_facet_search(
   client: Client,
   index_uid: String,
@@ -2452,6 +2579,9 @@ pub fn get_facet_search(
 /// ```gleam
 /// let #(request, parser) = update_facet_search(client, "movies", True)
 /// ```
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/update-facet-search
 pub fn update_facet_search(
   client: Client,
   index_uid: String,
@@ -2486,6 +2616,9 @@ pub fn update_facet_search(
 /// ```gleam
 /// let #(request, parser) = reset_facet_search(client, "movies")
 /// ```
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/reset-facet-search
 pub fn reset_facet_search(
   client: Client,
   index_uid: String,
@@ -2518,7 +2651,7 @@ pub type Settings {
     separator_tokens: List(String),
     dictionary: List(String),
     synonyms: Dict(String, List(String)),
-    distinct_attribute: String,
+    distinct_attribute: option.Option(String),
     proximity_precision: ProximityPrecision,
     typo_tolerance: TypoTolerance,
     faceting: Faceting,
@@ -2528,7 +2661,7 @@ pub type Settings {
     localized_attribute: option.Option(List(LocalizedAttribute)),
     facet_search: Bool,
     prefix_search: option.Option(PrefixSearch),
-    chat: Chat,
+    chat: option.Option(Chat),
   )
 }
 
@@ -2599,22 +2732,22 @@ pub type Embedder {
     model: String,
     revision: option.Option(String),
     pooling: Option(EmbedderPooling),
-    api_key: String,
-    dimensions: Int,
-    binary_quantisized: Bool,
+    api_key: Option(String),
+    dimensions: option.Option(Int),
+    binary_quantisized: Option(Bool),
     document_template: String,
-    document_template_max_bytes: Int,
-    url: String,
+    document_template_max_bytes: option.Option(Int),
+    url: option.Option(String),
     // TODO: for the following dicts Value in following dict is any
     indexing_fragments: option.Option(Dict(String, String)),
     search_fragments: option.Option(Dict(String, String)),
-    request: Dict(String, String),
-    response: Dict(String, String),
+    request: Option(Dict(String, String)),
+    response: Option(Dict(String, String)),
     // Not for this one
-    headers: Dict(String, String),
+    headers: Option(Dict(String, String)),
     search_embedder: option.Option(Embedder),
     indexing_embedder: option.Option(Embedder),
-    distribution: Distribution,
+    distribution: option.Option(Distribution),
   )
 }
 
@@ -2698,8 +2831,9 @@ fn decode_settings() -> decode.Decoder(Settings) {
     "sortableAttributes",
     decode.list(decode.string),
   )
-  use foreign_keys <- decode.field(
+  use foreign_keys <- decode.optional_field(
     "foreignKeys",
+    option.None,
     decode.optional(decode.list(decode_foreign_keys())),
   )
   use ranking_rules <- decode.field("rankingRules", decode_ranking_rules())
@@ -2717,7 +2851,10 @@ fn decode_settings() -> decode.Decoder(Settings) {
     "synonyms",
     decode.dict(decode.string, decode.list(decode.string)),
   )
-  use distinct_attribute <- decode.field("distinctAttribute", decode.string)
+  use distinct_attribute <- decode.field(
+    "distinctAttribute",
+    decode.optional(decode.string),
+  )
   use proximity_precision <- decode.field(
     "proximityPrecision",
     decode.string
@@ -2747,7 +2884,11 @@ fn decode_settings() -> decode.Decoder(Settings) {
     "prefixSearch",
     decode.optional(decode.string |> decode.map(prefix_search_from_string)),
   )
-  use chat <- decode.field("chat", decode_chat())
+  use chat <- decode.optional_field(
+    "chat",
+    option.None,
+    decode_chat() |> decode.map(option.Some),
+  )
 
   decode.success(Settings(
     displayed_attributes:,
@@ -2776,69 +2917,75 @@ fn decode_settings() -> decode.Decoder(Settings) {
 }
 
 fn settings_list_to_json(settings: Settings) -> String {
-  let object =
-    json.object([
-      #(
-        "displayedAttributes",
-        json.array(settings.displayed_attributes, json.string),
-      ),
-      #(
-        "searchableAttributes",
-        json.array(settings.searchable_attributes, json.string),
-      ),
-      #(
-        "filterableAttributes",
-        json.array(settings.filterable_attributes, json.string),
-      ),
-      #(
-        "sortableAttributes",
-        json.array(settings.sortable_attributes, json.string),
-      ),
-      #("foreignKeys", case settings.foreign_keys {
-        option.Some(keys) -> json.array(keys, foreign_key_to_json)
-        option.None -> json.null()
+  let params = [
+    #(
+      "displayedAttributes",
+      json.array(settings.displayed_attributes, json.string),
+    ),
+    #(
+      "searchableAttributes",
+      json.array(settings.searchable_attributes, json.string),
+    ),
+    #(
+      "filterableAttributes",
+      json.array(settings.filterable_attributes, json.string),
+    ),
+    #(
+      "sortableAttributes",
+      json.array(settings.sortable_attributes, json.string),
+    ),
+    #("rankingRules", json.array(settings.ranking_rules, ranking_rule_to_json)),
+    #("stopWords", json.array(settings.stop_words, json.string)),
+    #(
+      "nonSeparatorTokens",
+      json.array(settings.non_separator_tokens, json.string),
+    ),
+    #("separatorTokens", json.array(settings.separator_tokens, json.string)),
+    #("dictionary", json.array(settings.dictionary, json.string)),
+    #(
+      "synonyms",
+      json.dict(settings.synonyms, fn(v) { v }, fn(v) {
+        json.array(v, json.string)
       }),
-      #(
-        "rankingRules",
-        json.array(settings.ranking_rules, ranking_rule_to_json),
-      ),
-      #("stopWords", json.array(settings.stop_words, json.string)),
-      #(
-        "nonSeparatorTokens",
-        json.array(settings.non_separator_tokens, json.string),
-      ),
-      #("separatorTokens", json.array(settings.separator_tokens, json.string)),
-      #("dictionary", json.array(settings.dictionary, json.string)),
-      #(
-        "synonyms",
-        json.dict(settings.synonyms, fn(v) { v }, fn(v) {
-          json.array(v, json.string)
-        }),
-      ),
-      #("distinctAttribute", json.string(settings.distinct_attribute)),
-      #(
-        "proximityPrecision",
-        proximity_precision_to_json(settings.proximity_precision),
-      ),
-      #("typoTolerance", typo_tolerance_to_json(settings.typo_tolerance)),
+    ),
+    #("distinctAttribute", case settings.distinct_attribute {
+      option.Some(attr) -> json.string(attr)
+      option.None -> json.null()
+    }),
+    #(
+      "proximityPrecision",
+      proximity_precision_to_json(settings.proximity_precision),
+    ),
+    #("typoTolerance", typo_tolerance_to_json(settings.typo_tolerance)),
+    #("faceting", faceting_to_json(settings.faceting)),
+    #("pagination", pagination_to_json(settings.pagination)),
+    #("embedders", embedders_to_json(settings.embedders)),
+    #("searchCutoffMs", case settings.search_cutoff_ms {
+      option.Some(search_cutoff_ms) -> json.int(search_cutoff_ms)
+      option.None -> json.null()
+    }),
+    #("localizedAttributes", case settings.localized_attribute {
+      option.Some(attrs) -> json.array(attrs, localized_attribute_to_json)
+      option.None -> json.null()
+    }),
+    #("facetSearch", json.bool(settings.facet_search)),
+    #("prefixSearch", prefix_search_to_json(settings.prefix_search)),
+  ]
 
-      #("faceting", faceting_to_json(settings.faceting)),
-      #("pagination", pagination_to_json(settings.pagination)),
-      #("embedders", embedders_to_json(settings.embedders)),
-      #("searchCutoffMs", case settings.search_cutoff_ms {
-        option.Some(search_cutoff_ms) -> json.int(search_cutoff_ms)
-        option.None -> json.null()
-      }),
-      #("localizedAttributes", case settings.localized_attribute {
-        option.Some(attrs) -> json.array(attrs, localized_attribute_to_json)
-        option.None -> json.null()
-      }),
-      #("facetSearch", json.bool(settings.facet_search)),
-      #("prefixSearch", prefix_search_to_json(settings.prefix_search)),
-      #("chat", chat_to_json(settings.chat)),
-    ])
+  let params = case settings.foreign_keys {
+    option.Some(keys) -> [
+      #("foreignKeys", json.array(keys, foreign_key_to_json)),
+      ..params
+    ]
+    option.None -> params
+  }
 
-  json.to_string(object)
+  let params = case settings.chat {
+    option.Some(chat) -> [#("chat", chat_to_json(chat)), ..params]
+    option.None -> params
+  }
+
+  json.object(params) |> json.to_string
 }
 
 fn prefix_search_from_string(value: String) -> PrefixSearch {
@@ -2924,52 +3071,81 @@ fn decode_embedder() -> decode.Decoder(Embedder) {
     decode.string |> decode.map(decode_source),
   )
   use model <- decode.field("model", decode.string)
-  use revision <- decode.field("revision", decode.optional(decode.string))
-  use pooling <- decode.field(
+  use revision <- decode.optional_field(
+    "revision",
+    option.None,
+    decode.optional(decode.string),
+  )
+  use pooling <- decode.optional_field(
     "pooling",
+    option.None,
     decode.optional(decode.string |> decode.map(decode_pooling)),
   )
-  use api_key <- decode.field("apiKey", decode.string)
-  use dimensions <- decode.field("dimensions", decode.int)
-  use binary_quantisized <- decode.field("binaryQuantisized", decode.bool)
+  use api_key <- decode.optional_field(
+    "apiKey",
+    option.None,
+    decode.optional(decode.string),
+  )
+  use dimensions <- decode.optional_field(
+    "dimensions",
+    option.None,
+    decode.optional(decode.int),
+  )
+  use binary_quantisized <- decode.optional_field(
+    "binaryQuantisized",
+    option.None,
+    decode.optional(decode.bool),
+  )
   use document_template <- decode.field("documentTemplate", decode.string)
-  use document_template_max_bytes <- decode.field(
+  use document_template_max_bytes <- decode.optional_field(
     "documentTemplateMaxBytes",
-    decode.int,
+    option.None,
+    decode.optional(decode.int),
   )
-  use url <- decode.field("url", decode.string)
-  use indexing_fragments <- decode.field(
+  use url <- decode.optional_field(
+    "url",
+    option.None,
+    decode.optional(decode.string),
+  )
+  use indexing_fragments <- decode.optional_field(
     "indexingFragments",
+    option.None,
     decode.optional(decode.dict(decode.string, decode.string)),
   )
-  use search_fragments <- decode.field(
+  use search_fragments <- decode.optional_field(
     "searchFragments",
+    option.None,
     decode.optional(decode.dict(decode.string, decode.string)),
   )
-  use request <- decode.field(
+  use request <- decode.optional_field(
     "request",
-    decode.dict(decode.string, decode.string),
+    option.None,
+    decode.optional(decode.dict(decode.string, decode.string)),
   )
-  use response <- decode.field(
+  use response <- decode.optional_field(
     "response",
-    decode.dict(decode.string, decode.string),
+    option.None,
+    decode.optional(decode.dict(decode.string, decode.string)),
   )
-  use headers <- decode.field(
+  use headers <- decode.optional_field(
     "headers",
-    decode.dict(decode.string, decode.string),
+    option.None,
+    decode.optional(decode.dict(decode.string, decode.string)),
   )
-  use search_embedder <- decode.field(
+  use search_embedder <- decode.optional_field(
     "searchEmbedder",
+    option.None,
     decode.optional(decode_embedder()),
   )
-  use indexing_embedder <- decode.field(
+  use indexing_embedder <- decode.optional_field(
     "indexingEmbedder",
+    option.None,
     decode.optional(decode_embedder()),
   )
-  use distribution <- decode.field("distribution", {
+  use distribution <- decode.optional_field("distribution", option.None, {
     use mean <- decode.field("mean", decode.float)
     use sigma <- decode.field("sigma", decode.float)
-    decode.success(Distribution(mean:, sigma:))
+    decode.success(option.Some(Distribution(mean:, sigma:)))
   })
 
   decode.success(Embedder(
@@ -3023,24 +3199,45 @@ fn embedder_to_json(embedder: Embedder) -> json.Json {
   let params = [
     #("source", embedder_source_to_json(embedder.source)),
     #("model", json.string(embedder.model)),
-    #("apiKey", json.string(embedder.api_key)),
-    #("dimensions", json.int(embedder.dimensions)),
-    #("binaryQuantized", json.bool(embedder.binary_quantisized)),
+    #("apiKey", case embedder.api_key {
+      option.None -> json.null()
+      option.Some(key) -> json.string(key)
+    }),
+    #("dimensions", case embedder.dimensions {
+      option.Some(dimensions) -> json.int(dimensions)
+      option.None -> json.null()
+    }),
+    #("binaryQuantized", case embedder.binary_quantisized {
+      option.Some(binary_quantisized) -> json.bool(binary_quantisized)
+      option.None -> json.null()
+    }),
     #("documentTemplate", json.string(embedder.document_template)),
-    #(
-      "documentTemplateMaxBytes",
-      json.int(embedder.document_template_max_bytes),
-    ),
-    #("url", json.string(embedder.url)),
-    #("distribution", distribution_to_json(embedder.distribution)),
+    #("url", case embedder.url {
+      option.Some(url) -> json.string(url)
+      option.None -> json.null()
+    }),
   ]
 
+  let params = case embedder.document_template_max_bytes {
+    option.Some(max_bytes) -> [
+      #("documentTemplateMaxBytes", json.int(max_bytes)),
+      ..params
+    ]
+    option.None -> params
+  }
   let params = case embedder.revision {
     option.Some(revision) -> [#("revision", json.string(revision)), ..params]
     option.None -> params
   }
   let params = case embedder.pooling {
     option.Some(pooling) -> [#("pooling", pooling_to_json(pooling)), ..params]
+    option.None -> params
+  }
+  let params = case embedder.distribution {
+    option.Some(distribution) -> [
+      #("distribution", distribution_to_json(distribution)),
+      ..params
+    ]
     option.None -> params
   }
 
@@ -3066,34 +3263,25 @@ fn embedder_to_json(embedder: Embedder) -> json.Json {
     option.None -> params
   }
 
-  let params = case dict.is_empty(embedder.request) {
-    True -> params
-    False -> [
-      #(
-        "request",
-        json.dict(embedder.request, fn(k) { k }, fn(v) { json.string(v) }),
-      ),
+  let params = case embedder.request {
+    option.None -> params
+    option.Some(request) -> [
+      #("request", json.dict(request, fn(k) { k }, fn(v) { json.string(v) })),
       ..params
     ]
   }
-  let params = case dict.is_empty(embedder.response) {
-    True -> params
-    False -> [
-      #(
-        "response",
-        json.dict(embedder.response, fn(k) { k }, fn(v) { json.string(v) }),
-      ),
+  let params = case embedder.response {
+    option.None -> params
+    option.Some(response) -> [
+      #("response", json.dict(response, fn(k) { k }, fn(v) { json.string(v) })),
       ..params
     ]
   }
 
-  let params = case dict.is_empty(embedder.headers) {
-    True -> params
-    False -> [
-      #(
-        "headers",
-        json.dict(embedder.headers, fn(k) { k }, fn(v) { json.string(v) }),
-      ),
+  let params = case embedder.headers {
+    option.None -> params
+    option.Some(headers) -> [
+      #("headers", json.dict(headers, fn(k) { k }, fn(v) { json.string(v) })),
       ..params
     ]
   }

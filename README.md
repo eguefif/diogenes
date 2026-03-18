@@ -70,7 +70,7 @@ Further documentation can be found at <https://hexdocs.pm/diogenes>.
 ### Progress toward V1
 | Section | Progress | Items Count |
 |---|---| --- |
-| Overall | 88% | 84.5/97 |
+| Overall | 86% | 83.5/97 |
 | --- | --- | --- |
 | Index | 100% | 7/7 | 
 | Documents | 85% | 8.5/10 |

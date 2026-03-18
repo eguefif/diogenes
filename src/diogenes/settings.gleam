@@ -5,30 +5,8 @@
 ////
 //// ## TODO
 ////
-//// - [x] All settings - `/indexes/{indexUid}/settings`
-//// - [x] Displayed attributes - `/indexes/{indexUid}/settings/displayed-attributes`
-//// - [x] Searchable attributes - `/indexes/{indexUid}/settings/searchable-attributes`
-//// - [x] Filterable attributes - `/indexes/{indexUid}/settings/filterable-attributes`
-//// - [x] Sortable attributes - `/indexes/{indexUid}/settings/sortable-attributes`
-//// - [x] Ranking rules - `/indexes/{indexUid}/settings/ranking-rules`
-//// - [x] Stop words - `/indexes/{indexUid}/settings/stop-words`
-//// - [x] Synonyms - `/indexes/{indexUid}/settings/synonyms`
-//// - [x] Distinct attribute - `/indexes/{indexUid}/settings/distinct-attribute`
-//// - [x] Typo tolerance - `/indexes/{indexUid}/settings/typo-tolerance`
-//// - [x] Faceting - `/indexes/{indexUid}/settings/faceting`
-//// - [x] Pagination - `/indexes/{indexUid}/settings/pagination`
-//// - [x] Dictionary - `/indexes/{indexUid}/settings/dictionary`
-//// - [x] Separator tokens - `/indexes/{indexUid}/settings/separator-tokens`
-//// - [x] Non-separator tokens - `/indexes/{indexUid}/settings/non-separator-tokens`
-//// - [x] Localized attributes - `/indexes/{indexUid}/settings/localized-attributes`
-//// - [ ] Embedders - `/indexes/{indexUid}/settings/embedders`
-//// - [x] Proximity precision - `/indexes/{indexUid}/settings/proximity-precision`
-//// - [x] Search cutoff ms - `/indexes/{indexUid}/settings/search-cutoff-ms`
-//// - [x] Facet search - `/indexes/{indexUid}/settings/facet-search`
-//// - [x] Prefix search - `/indexes/{indexUid}/settings/prefix-search`
-//// - [x] Chat - `/indexes/{indexUid}/settings/chat`
-//// - [x] Foreign keys - `/indexes/{indexUid}/settings/foreign-keys`
-//// - [x] Localized attributes can be null
+//// - [ ] Handle properly search fragments
+//// - [ ] Handle properly indexing fragments
 
 import diogenes.{type Client, type Error, type MeilisearchResponse}
 import diogenes/sansio/settings as sansio_settings
@@ -1042,6 +1020,12 @@ pub fn reset_pagination(
   send_request(request, [401, 404], parser)
 }
 
+/// Retrieves the faceting setting for the given index.
+///
+/// On success returns `Ok(MeilisearchSingleResult(Faceting))`.
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/get-faceting
 pub fn get_faceting(
   client: Client,
   index_uid: String,
@@ -1096,6 +1080,12 @@ pub fn reset_faceting(
   send_request(request, [401, 404], parser)
 }
 
+/// Retrieves the typo tolerance setting for the given index.
+///
+/// On success returns `Ok(MeilisearchSingleResult(TypoTolerance))`.
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/get-typo-tolerance
 pub fn get_typo_tolerance(
   client: Client,
   index_uid: String,
@@ -1151,6 +1141,12 @@ pub fn reset_typo_tolerance(
   send_request(request, [401, 404], parser)
 }
 
+/// Retrieves the synonyms setting for the given index.
+///
+/// On success returns `Ok(MeilisearchSingleResult(Dict(String, List(String))))`.
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/get-synonyms
 pub fn get_synonyms(
   client: Client,
   index_uid: String,
@@ -1205,6 +1201,12 @@ pub fn reset_synonyms(
   send_request(request, [401, 404], parser)
 }
 
+/// Retrieves the distinct attribute setting for the given index.
+///
+/// On success returns `Ok(MeilisearchSingleResult(Option(String)))`.
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/get-distinct-attribute
 pub fn get_distinct_attribute(
   client: Client,
   index_uid: String,
@@ -1265,6 +1267,12 @@ pub fn reset_distinct_attribute(
   send_request(request, [401, 404], parser)
 }
 
+/// Retrieves the facet search setting for the given index.
+///
+/// On success returns `Ok(MeilisearchSingleResult(Bool))`.
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/get-facet-search
 pub fn get_facet_search(
   client: Client,
   index_uid: String,
@@ -1410,6 +1418,12 @@ pub fn reset_prefix_search(
   send_request(request, [401, 404], parser)
 }
 
+/// Retrieves the proximity precision setting for the given index.
+///
+/// On success returns `Ok(MeilisearchSingleResult(ProximityPrecision))`.
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/get-proximity-precision
 pub fn get_proximity_precision(
   client: Client,
   index_uid: String,
@@ -1470,6 +1484,12 @@ pub fn reset_proximity_precision(
   send_request(request, [401, 404], parser)
 }
 
+/// Retrieves the localized attributes setting for the given index.
+///
+/// On success returns `Ok(MeilisearchSingleResult(Option(List(LocalizedAttribute))))`.
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/get-localized-attributes
 pub fn get_localized_attributes(
   client: Client,
   index_uid: String,

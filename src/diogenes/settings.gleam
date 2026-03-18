@@ -29,11 +29,10 @@
 //// - [x] Chat - `/indexes/{indexUid}/settings/chat`
 //// - [x] Foreign keys - `/indexes/{indexUid}/settings/foreign-keys`
 //// - [x] Localized attributes can be null
-//// - [ ] foreign keys does not pass
 
 import diogenes.{type Client, type Error, type MeilisearchResponse}
 import diogenes/sansio/settings as sansio_settings
-import gleam/dict
+import gleam/dict.{type Dict}
 import gleam/option
 import internal/http_tooling.{send_request}
 
@@ -48,6 +47,9 @@ import internal/http_tooling.{send_request}
 /// let assert Ok(Task(task_uid: uid, ..)) =
 ///   reset_all_settings(client, "movies")
 /// ```
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/reset-settings
 pub fn reset_all_settings(
   client: Client,
   index_uid: String,
@@ -67,6 +69,9 @@ pub fn reset_all_settings(
 /// let assert Ok(MeilisearchSingleResult(settings)) =
 ///   list_all_settings(client, "movies")
 /// ```
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/get-settings
 pub fn list_all_settings(
   client: Client,
   index_uid: String,
@@ -88,6 +93,9 @@ pub fn list_all_settings(
 /// let assert Ok(Task(task_uid: uid, ..)) =
 ///   update_all_settings(client, "movies", settings)
 /// ```
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/update-settings
 pub fn update_all_settings(
   client: Client,
   index_uid: String,
@@ -109,6 +117,9 @@ pub fn update_all_settings(
 /// let assert Ok(MeilisearchSingleResult(chat)) =
 ///   get_chat(client, "movies")
 /// ```
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/get-chat
 pub fn get_chat(
   client: Client,
   index_uid: String,
@@ -130,6 +141,9 @@ pub fn get_chat(
 /// let assert Ok(Task(task_uid: uid, ..)) =
 ///   update_chat(client, "movies", chat_settings)
 /// ```
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/update-chat
 pub fn update_chat(
   client: Client,
   index_uid: String,
@@ -151,6 +165,9 @@ pub fn update_chat(
 /// let assert Ok(Task(task_uid: uid, ..)) =
 ///   reset_chat(client, "movies")
 /// ```
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/reset-chat
 pub fn reset_chat(
   client: Client,
   index_uid: String,
@@ -173,6 +190,9 @@ pub fn reset_chat(
 /// let assert Ok(MeilisearchSingleResult(words)) =
 ///   get_dictionary(client, "movies")
 /// ```
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/get-dictionary
 pub fn get_dictionary(
   client: Client,
   index_uid: String,
@@ -194,6 +214,9 @@ pub fn get_dictionary(
 /// let assert Ok(Task(task_uid: uid, ..)) =
 ///   update_dictionary(client, "movies", ["J. R. R."])
 /// ```
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/update-dictionary
 pub fn update_dictionary(
   client: Client,
   index_uid: String,
@@ -215,6 +238,9 @@ pub fn update_dictionary(
 /// let assert Ok(Task(task_uid: uid, ..)) =
 ///   reset_dictionary(client, "movies")
 /// ```
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/reset-dictionary
 pub fn reset_dictionary(
   client: Client,
   index_uid: String,
@@ -236,6 +262,9 @@ pub fn reset_dictionary(
 /// let assert Ok(MeilisearchSingleResult(attributes)) =
 ///   get_displayed_attributes(client, "movies")
 /// ```
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/get-displayed-attributes
 pub fn get_displayed_attributes(
   client: Client,
   index_uid: String,
@@ -257,6 +286,9 @@ pub fn get_displayed_attributes(
 /// let assert Ok(Task(task_uid: uid, ..)) =
 ///   update_displayed_attributes(client, "movies", ["title", "overview"])
 /// ```
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/update-displayed-attributes
 pub fn update_displayed_attributes(
   client: Client,
   index_uid: String,
@@ -278,6 +310,9 @@ pub fn update_displayed_attributes(
 /// let assert Ok(Task(task_uid: uid, ..)) =
 ///   reset_displayed_attributes(client, "movies")
 /// ```
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/reset-displayed-attributes
 pub fn reset_displayed_attributes(
   client: Client,
   index_uid: String,
@@ -301,6 +336,9 @@ pub fn reset_displayed_attributes(
 /// let assert Ok(MeilisearchSingleResult(attributes)) =
 ///   get_searchable_attributes(client, "movies")
 /// ```
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/get-searchable-attributes
 pub fn get_searchable_attributes(
   client: Client,
   index_uid: String,
@@ -323,6 +361,9 @@ pub fn get_searchable_attributes(
 /// let assert Ok(Task(task_uid: uid, ..)) =
 ///   update_searchable_attributes(client, "movies", ["title", "overview"])
 /// ```
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/update-searchable-attributes
 pub fn update_searchable_attributes(
   client: Client,
   index_uid: String,
@@ -344,6 +385,9 @@ pub fn update_searchable_attributes(
 /// let assert Ok(Task(task_uid: uid, ..)) =
 ///   reset_searchable_attributes(client, "movies")
 /// ```
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/reset-searchable-attributes
 pub fn reset_searchable_attributes(
   client: Client,
   index_uid: String,
@@ -366,6 +410,9 @@ pub fn reset_searchable_attributes(
 /// let assert Ok(MeilisearchSingleResult(attributes)) =
 ///   get_sortable_attributes(client, "movies")
 /// ```
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/get-sortable-attributes
 pub fn get_sortable_attributes(
   client: Client,
   index_uid: String,
@@ -387,6 +434,9 @@ pub fn get_sortable_attributes(
 /// let assert Ok(Task(task_uid: uid, ..)) =
 ///   update_sortable_attributes(client, "movies", ["release_date", "title"])
 /// ```
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/update-sortable-attributes
 pub fn update_sortable_attributes(
   client: Client,
   index_uid: String,
@@ -408,6 +458,9 @@ pub fn update_sortable_attributes(
 /// let assert Ok(Task(task_uid: uid, ..)) =
 ///   reset_sortable_attributes(client, "movies")
 /// ```
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/reset-sortable-attributes
 pub fn reset_sortable_attributes(
   client: Client,
   index_uid: String,
@@ -431,6 +484,9 @@ pub fn reset_sortable_attributes(
 /// let assert Ok(MeilisearchSingleResult(tokens)) =
 ///   get_non_separator_tokens(client, "movies")
 /// ```
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/get-non-separator-tokens
 pub fn get_non_separator_tokens(
   client: Client,
   index_uid: String,
@@ -453,6 +509,9 @@ pub fn get_non_separator_tokens(
 /// let assert Ok(Task(task_uid: uid, ..)) =
 ///   update_non_separator_tokens(client, "movies", ["@", "#"])
 /// ```
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/update-non-separator-tokens
 pub fn update_non_separator_tokens(
   client: Client,
   index_uid: String,
@@ -474,6 +533,9 @@ pub fn update_non_separator_tokens(
 /// let assert Ok(Task(task_uid: uid, ..)) =
 ///   reset_non_separator_tokens(client, "movies")
 /// ```
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/reset-non-separator-tokens
 pub fn reset_non_separator_tokens(
   client: Client,
   index_uid: String,
@@ -497,6 +559,9 @@ pub fn reset_non_separator_tokens(
 /// let assert Ok(MeilisearchSingleResult(tokens)) =
 ///   get_separator_tokens(client, "movies")
 /// ```
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/get-separator-tokens
 pub fn get_separator_tokens(
   client: Client,
   index_uid: String,
@@ -519,6 +584,9 @@ pub fn get_separator_tokens(
 /// let assert Ok(Task(task_uid: uid, ..)) =
 ///   update_separator_tokens(client, "movies", ["|", "/"])
 /// ```
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/update-separator-tokens
 pub fn update_separator_tokens(
   client: Client,
   index_uid: String,
@@ -540,6 +608,9 @@ pub fn update_separator_tokens(
 /// let assert Ok(Task(task_uid: uid, ..)) =
 ///   reset_separator_tokens(client, "movies")
 /// ```
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/reset-separator-tokens
 pub fn reset_separator_tokens(
   client: Client,
   index_uid: String,
@@ -562,6 +633,9 @@ pub fn reset_separator_tokens(
 /// let assert Ok(MeilisearchSingleResult(words)) =
 ///   get_stop_words(client, "movies")
 /// ```
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/get-stop-words
 pub fn get_stop_words(
   client: Client,
   index_uid: String,
@@ -582,6 +656,9 @@ pub fn get_stop_words(
 /// let assert Ok(Task(task_uid: uid, ..)) =
 ///   update_stop_words(client, "movies", ["the", "a", "an"])
 /// ```
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/update-stop-words
 pub fn update_stop_words(
   client: Client,
   index_uid: String,
@@ -603,6 +680,9 @@ pub fn update_stop_words(
 /// let assert Ok(Task(task_uid: uid, ..)) =
 ///   reset_stop_words(client, "movies")
 /// ```
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/reset-stop-words
 pub fn reset_stop_words(
   client: Client,
   index_uid: String,
@@ -625,6 +705,9 @@ pub fn reset_stop_words(
 /// let assert Ok(MeilisearchSingleResult(attributes)) =
 ///   get_filterable_attributes(client, "movies")
 /// ```
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/get-filterable-attributes
 pub fn get_filterable_attributes(
   client: Client,
   index_uid: String,
@@ -647,6 +730,9 @@ pub fn get_filterable_attributes(
 /// let assert Ok(Task(task_uid: uid, ..)) =
 ///   update_filterable_attributes(client, "movies", ["genre", "year"])
 /// ```
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/update-filterable-attributes
 pub fn update_filterable_attributes(
   client: Client,
   index_uid: String,
@@ -668,6 +754,9 @@ pub fn update_filterable_attributes(
 /// let assert Ok(Task(task_uid: uid, ..)) =
 ///   reset_filterable_attributes(client, "movies")
 /// ```
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/reset-filterable-attributes
 pub fn reset_filterable_attributes(
   client: Client,
   index_uid: String,
@@ -692,6 +781,9 @@ pub fn reset_filterable_attributes(
 /// let assert Ok(MeilisearchSingleResult(rules)) =
 ///   get_ranking_rules(client, "movies")
 /// ```
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/get-ranking-rules
 pub fn get_ranking_rules(
   client: Client,
   index_uid: String,
@@ -712,6 +804,9 @@ pub fn get_ranking_rules(
 /// let assert Ok(Task(task_uid: uid, ..)) =
 ///   update_ranking_rules(client, "movies", [Words, Typo, Proximity, AttributeRank, Sort, Exactness])
 /// ```
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/update-ranking-rules
 pub fn update_ranking_rules(
   client: Client,
   index_uid: String,
@@ -735,6 +830,9 @@ pub fn update_ranking_rules(
 /// let assert Ok(Task(task_uid: uid, ..)) =
 ///   reset_ranking_rules(client, "movies")
 /// ```
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/reset-ranking-rules
 pub fn reset_ranking_rules(
   client: Client,
   index_uid: String,
@@ -759,6 +857,9 @@ pub fn reset_ranking_rules(
 /// let assert Ok(MeilisearchSingleResult(cutoff)) =
 ///   get_search_cutoff_ms(client, "movies")
 /// ```
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/get-search-cutoff-ms
 pub fn get_search_cutoff_ms(
   client: Client,
   index_uid: String,
@@ -781,6 +882,9 @@ pub fn get_search_cutoff_ms(
 /// let assert Ok(Task(task_uid: uid, ..)) =
 ///   update_search_cutoff_ms(client, "movies", 150)
 /// ```
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/update-search-cutoff-ms
 pub fn update_search_cutoff_ms(
   client: Client,
   index_uid: String,
@@ -803,6 +907,9 @@ pub fn update_search_cutoff_ms(
 /// let assert Ok(Task(task_uid: uid, ..)) =
 ///   reset_search_cutoff_ms(client, "movies")
 /// ```
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/reset-search-cutoff-ms
 pub fn reset_search_cutoff_ms(
   client: Client,
   index_uid: String,
@@ -878,6 +985,9 @@ pub fn reset_search_cutoff_ms(
 /// let assert Ok(MeilisearchSingleResult(pagination)) =
 ///   get_pagination(client, "movies")
 /// ```
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/get-pagination
 pub fn get_pagination(
   client: Client,
   index_uid: String,
@@ -897,6 +1007,9 @@ pub fn get_pagination(
 /// let assert Ok(Task(task_uid: uid, ..)) =
 ///   update_pagination(client, "movies", pagination)
 /// ```
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/update-pagination
 pub fn update_pagination(
   client: Client,
   index_uid: String,
@@ -918,6 +1031,9 @@ pub fn update_pagination(
 /// let assert Ok(Task(task_uid: uid, ..)) =
 ///   reset_pagination(client, "movies")
 /// ```
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/reset-pagination
 pub fn reset_pagination(
   client: Client,
   index_uid: String,
@@ -945,6 +1061,9 @@ pub fn get_faceting(
 /// let assert Ok(Task(task_uid: uid, ..)) =
 ///   update_faceting(client, "movies", faceting)
 /// ```
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/update-faceting
 pub fn update_faceting(
   client: Client,
   index_uid: String,
@@ -966,6 +1085,9 @@ pub fn update_faceting(
 /// let assert Ok(Task(task_uid: uid, ..)) =
 ///   reset_faceting(client, "movies")
 /// ```
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/reset-faceting
 pub fn reset_faceting(
   client: Client,
   index_uid: String,
@@ -993,6 +1115,9 @@ pub fn get_typo_tolerance(
 /// let assert Ok(Task(task_uid: uid, ..)) =
 ///   update_typo_tolerance(client, "movies", typo_tolerance)
 /// ```
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/update-typo-tolerance
 pub fn update_typo_tolerance(
   client: Client,
   index_uid: String,
@@ -1014,6 +1139,9 @@ pub fn update_typo_tolerance(
 /// let assert Ok(Task(task_uid: uid, ..)) =
 ///   reset_typo_tolerance(client, "movies")
 /// ```
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/reset-typo-tolerance
 pub fn reset_typo_tolerance(
   client: Client,
   index_uid: String,
@@ -1042,6 +1170,9 @@ pub fn get_synonyms(
 /// let assert Ok(Task(task_uid: uid, ..)) =
 ///   update_synonyms(client, "movies", dict.from_list([#("wolverine", ["xmen", "logan"])]))
 /// ```
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/update-synonyms
 pub fn update_synonyms(
   client: Client,
   index_uid: String,
@@ -1063,6 +1194,9 @@ pub fn update_synonyms(
 /// let assert Ok(Task(task_uid: uid, ..)) =
 ///   reset_synonyms(client, "movies")
 /// ```
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/reset-synonyms
 pub fn reset_synonyms(
   client: Client,
   index_uid: String,
@@ -1091,6 +1225,9 @@ pub fn get_distinct_attribute(
 /// let assert Ok(Task(task_uid: uid, ..)) =
 ///   update_distinct_attribute(client, "movies", "movie_id")
 /// ```
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/update-distinct-attribute
 pub fn update_distinct_attribute(
   client: Client,
   index_uid: String,
@@ -1116,6 +1253,9 @@ pub fn update_distinct_attribute(
 /// let assert Ok(Task(task_uid: uid, ..)) =
 ///   reset_distinct_attribute(client, "movies")
 /// ```
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/reset-distinct-attribute
 pub fn reset_distinct_attribute(
   client: Client,
   index_uid: String,
@@ -1144,6 +1284,9 @@ pub fn get_facet_search(
 /// let assert Ok(Task(task_uid: uid, ..)) =
 ///   update_facet_search(client, "movies", True)
 /// ```
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/update-facet-search
 pub fn update_facet_search(
   client: Client,
   index_uid: String,
@@ -1165,6 +1308,9 @@ pub fn update_facet_search(
 /// let assert Ok(Task(task_uid: uid, ..)) =
 ///   reset_facet_search(client, "movies")
 /// ```
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/reset-facet-search
 pub fn reset_facet_search(
   client: Client,
   index_uid: String,
@@ -1206,6 +1352,9 @@ pub fn reset_facet_search(
 /// let assert Ok(MeilisearchSingleResult(prefix_search)) =
 ///   get_prefix_search(client, "movies")
 /// ```
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/get-prefix-search
 pub fn get_prefix_search(
   client: Client,
   index_uid: String,
@@ -1225,6 +1374,9 @@ pub fn get_prefix_search(
 /// let assert Ok(Task(task_uid: uid, ..)) =
 ///   update_prefix_search(client, "movies", IndexTime)
 /// ```
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/update-prefix-search
 pub fn update_prefix_search(
   client: Client,
   index_uid: String,
@@ -1246,6 +1398,9 @@ pub fn update_prefix_search(
 /// let assert Ok(Task(task_uid: uid, ..)) =
 ///   reset_prefix_search(client, "movies")
 /// ```
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/reset-prefix-search
 pub fn reset_prefix_search(
   client: Client,
   index_uid: String,
@@ -1275,6 +1430,9 @@ pub fn get_proximity_precision(
 /// let assert Ok(Task(task_uid: uid, ..)) =
 ///   update_proximity_precision(client, "movies", ByWord)
 /// ```
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/update-proximity-precision
 pub fn update_proximity_precision(
   client: Client,
   index_uid: String,
@@ -1300,6 +1458,9 @@ pub fn update_proximity_precision(
 /// let assert Ok(Task(task_uid: uid, ..)) =
 ///   reset_proximity_precision(client, "movies")
 /// ```
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/reset-proximity-precision
 pub fn reset_proximity_precision(
   client: Client,
   index_uid: String,
@@ -1313,9 +1474,7 @@ pub fn get_localized_attributes(
   client: Client,
   index_uid: String,
 ) -> Result(
-  MeilisearchResponse(
-    option.Option(List(sansio_settings.LocalizedAttribute)),
-  ),
+  MeilisearchResponse(option.Option(List(sansio_settings.LocalizedAttribute))),
   Error,
 ) {
   let #(request, parser) =
@@ -1334,6 +1493,9 @@ pub fn get_localized_attributes(
 /// let assert Ok(Task(task_uid: uid, ..)) =
 ///   update_localized_attributes(client, "movies", attributes)
 /// ```
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/update-localized-attributes
 pub fn update_localized_attributes(
   client: Client,
   index_uid: String,
@@ -1355,6 +1517,9 @@ pub fn update_localized_attributes(
 /// let assert Ok(Task(task_uid: uid, ..)) =
 ///   reset_localized_attributes(client, "movies")
 /// ```
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/reset-localized-attributes
 pub fn reset_localized_attributes(
   client: Client,
   index_uid: String,
@@ -1375,6 +1540,9 @@ pub fn reset_localized_attributes(
 /// let assert Ok(MeilisearchSingleResult(foreign_keys)) =
 ///   get_foreign_keys(client, "movies")
 /// ```
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/get-foreign-keys
 pub fn get_foreign_keys(
   client: Client,
   index_uid: String,
@@ -1397,6 +1565,9 @@ pub fn get_foreign_keys(
 /// let assert Ok(Task(task_uid: uid, ..)) =
 ///   update_foreign_keys(client, "movies", foreign_keys)
 /// ```
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/update-foreign-keys
 pub fn update_foreign_keys(
   client: Client,
   index_uid: String,
@@ -1418,10 +1589,81 @@ pub fn update_foreign_keys(
 /// let assert Ok(Task(task_uid: uid, ..)) =
 ///   reset_foreign_keys(client, "movies")
 /// ```
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/reset-foreign-keys
 pub fn reset_foreign_keys(
   client: Client,
   index_uid: String,
 ) -> Result(MeilisearchResponse(task), Error) {
   let #(request, parser) = sansio_settings.reset_foreign_keys(client, index_uid)
+  send_request(request, [401, 404], parser)
+}
+
+/// Retrieves the embedders setting for the given index.
+///
+/// On success returns `Ok(MeilisearchSingleResult(Dict(String, Embedder)))`.
+/// Errors include `MeilisearchError` for 401/404 responses and
+/// `TransportError` for network failures.
+///
+/// ## Example
+/// ```gleam
+/// let assert Ok(MeilisearchSingleResult(embedders)) =
+///   get_embedders(client, "movies")
+/// ```
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/get-embedders
+pub fn get_embedders(
+  client: Client,
+  index_uid: String,
+) -> Result(MeilisearchResponse(Dict(String, sansio_settings.Embedder)), Error) {
+  let #(request, parser) = sansio_settings.get_embedders(client, index_uid)
+  send_request(request, [401, 404], parser)
+}
+
+/// Updates the embedders setting for the given index.
+///
+/// The operation is asynchronous — Meilisearch enqueues it and returns a `Task`.
+///
+/// On success returns `Ok(Task(...))`.
+///
+/// ## Example
+/// ```gleam
+/// let assert Ok(Task(task_uid: uid, ..)) =
+///   update_embedders(client, "movies", embedders)
+/// ```
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/update-embedders
+pub fn update_embedders(
+  client: Client,
+  index_uid: String,
+  embedders: Dict(String, sansio_settings.Embedder),
+) -> Result(MeilisearchResponse(task), Error) {
+  let #(request, parser) =
+    sansio_settings.update_embedders(client, index_uid, embedders)
+  send_request(request, [401, 404], parser)
+}
+
+/// Resets the embedders setting for the given index to its default value.
+///
+/// The operation is asynchronous — Meilisearch enqueues it and returns a `Task`.
+///
+/// On success returns `Ok(Task(...))`.
+///
+/// ## Example
+/// ```gleam
+/// let assert Ok(Task(task_uid: uid, ..)) =
+///   reset_embedders(client, "movies")
+/// ```
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/reset-embedders
+pub fn reset_embedders(
+  client: Client,
+  index_uid: String,
+) -> Result(MeilisearchResponse(task), Error) {
+  let #(request, parser) = sansio_settings.reset_embedders(client, index_uid)
   send_request(request, [401, 404], parser)
 }

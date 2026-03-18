@@ -7,13 +7,126 @@ import gleam/dict.{type Dict}
 import gleam/dynamic/decode
 import gleam/http
 import gleam/http/request.{type Request}
-import gleam/io
 import gleam/json
-import gleam/option
+import gleam/option.{type Option}
 import gleam/result
 import internal/http_tooling.{create_base_request}
 
 // Api functions ---------------------------------------------------------------------------
+
+/// Builds a request to retrieve the embedders setting for the given index.
+///
+/// Returns a tuple of the HTTP request and a parser function.
+/// The parser handles:
+/// - `200` — returns a `MeilisearchSingleResult(Dict(String, Embedder))`
+/// - `401` — unauthorized (invalid or missing API key)
+/// - `404` — index not found
+///
+/// ## Example
+/// ```gleam
+/// let #(request, parser) = get_embedders(client, "movies")
+/// ```
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/get-embedders
+pub fn get_embedders(
+  client: Client,
+  index_uid: String,
+) -> #(
+  Request(String),
+  fn(Int, String) -> Result(MeilisearchResponse(Dict(String, Embedder)), Error),
+) {
+  let request =
+    create_base_request(
+      client,
+      "/indexes/" <> index_uid <> "/settings/embedders",
+    )
+    |> request.set_method(http.Get)
+
+  let parser = fn(status: Int, body: String) {
+    case status {
+      200 ->
+        case embedders_from_json(body) {
+          Ok(embedders) -> Ok(MeilisearchSingleResult(embedders))
+          Error(error) -> Error(JsonError(error))
+        }
+      401 | 404 -> Error(meilisearch_error_from_json(body))
+      _ -> Error(UnexpectedHttpStatusCodeError(status, body))
+    }
+  }
+
+  #(request, parser)
+}
+
+/// Builds a request to update the embedders setting for the given index.
+///
+/// The operation is asynchronous — Meilisearch enqueues it and returns a task.
+///
+/// Returns a tuple of the HTTP request and a parser function.
+/// The parser handles:
+/// - `202` — returns a `Task` with the enqueued task details
+/// - `401` — unauthorized (invalid or missing API key)
+/// - `404` — index not found
+///
+/// ## Example
+/// ```gleam
+/// let #(request, parser) = update_embedders(client, "movies", embedders)
+/// ```
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/update-embedders
+pub fn update_embedders(
+  client: Client,
+  index_uid: String,
+  embedders: Dict(String, Embedder),
+) -> #(
+  Request(String),
+  fn(Int, String) -> Result(MeilisearchResponse(task), Error),
+) {
+  let body = embedders_to_json(embedders) |> json.to_string
+  let request =
+    create_base_request(
+      client,
+      "/indexes/" <> index_uid <> "/settings/embedders",
+    )
+    |> request.set_method(http.Patch)
+    |> request.set_header("Content-Type", "application/json")
+    |> request.set_body(body)
+  #(request, task_parser)
+}
+
+/// Builds a request to reset the embedders setting for the given index to its default value.
+///
+/// The operation is asynchronous — Meilisearch enqueues it and returns a task.
+///
+/// Returns a tuple of the HTTP request and a parser function.
+/// The parser handles:
+/// - `202` — returns a `Task` with the enqueued task details
+/// - `401` — unauthorized (invalid or missing API key)
+/// - `404` — index not found
+///
+/// ## Example
+/// ```gleam
+/// let #(request, parser) = reset_embedders(client, "movies")
+/// ```
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/reset-embedders
+pub fn reset_embedders(
+  client: Client,
+  index_uid: String,
+) -> #(
+  Request(String),
+  fn(Int, String) -> Result(MeilisearchResponse(task), Error),
+) {
+  let request =
+    create_base_request(
+      client,
+      "/indexes/" <> index_uid <> "/settings/embedders",
+    )
+    |> request.set_method(http.Delete)
+  #(request, task_parser)
+}
 
 /// Builds a request to reset all settings for the given index to their default values.
 ///
@@ -29,6 +142,9 @@ import internal/http_tooling.{create_base_request}
 /// ```gleam
 /// let #(request, parser) = reset_all_settings(client, "movies")
 /// ```
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/reset-settings
 pub fn reset_all_settings(
   client: Client,
   index_uid: String,
@@ -54,6 +170,9 @@ pub fn reset_all_settings(
 /// ```gleam
 /// let #(request, parser) = list_all_settings(client, "movies")
 /// ```
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/get-settings
 pub fn list_all_settings(
   client: Client,
   index_uid: String,
@@ -89,6 +208,9 @@ pub fn list_all_settings(
 /// ```gleam
 /// let #(request, parser) = update_all_settings(client, "movies", settings)
 /// ```
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/update-settings
 pub fn update_all_settings(
   client: Client,
   index_uid: String,
@@ -118,6 +240,9 @@ pub fn update_all_settings(
 /// ```gleam
 /// let #(request, parser) = get_chat(client, "movies")
 /// ```
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/get-chat
 pub fn get_chat(
   client: Client,
   index_uid: String,
@@ -158,6 +283,9 @@ pub fn get_chat(
 /// ```gleam
 /// let #(request, parser) = update_chat(client, "movies", chat_settings)
 /// ```
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/update-chat
 pub fn update_chat(
   client: Client,
   index_uid: String,
@@ -188,6 +316,9 @@ pub fn update_chat(
 /// ```gleam
 /// let #(request, parser) = reset_chat(client, "movies")
 /// ```
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/reset-chat
 pub fn reset_chat(
   client: Client,
   index_uid: String,
@@ -213,6 +344,9 @@ pub fn reset_chat(
 /// ```gleam
 /// let #(request, parser) = get_dictionary(client, "movies")
 /// ```
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/get-dictionary
 pub fn get_dictionary(
   client: Client,
   index_uid: String,
@@ -258,6 +392,9 @@ pub fn get_dictionary(
 /// ```gleam
 /// let #(request, parser) = update_dictionary(client, "movies", ["J. R. R."])
 /// ```
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/update-dictionary
 pub fn update_dictionary(
   client: Client,
   index_uid: String,
@@ -292,6 +429,9 @@ pub fn update_dictionary(
 /// ```gleam
 /// let #(request, parser) = reset_dictionary(client, "movies")
 /// ```
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/reset-dictionary
 pub fn reset_dictionary(
   client: Client,
   index_uid: String,
@@ -320,6 +460,9 @@ pub fn reset_dictionary(
 /// ```gleam
 /// let #(request, parser) = get_displayed_attributes(client, "movies")
 /// ```
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/get-displayed-attributes
 pub fn get_displayed_attributes(
   client: Client,
   index_uid: String,
@@ -363,6 +506,9 @@ pub fn get_displayed_attributes(
 /// ```gleam
 /// let #(request, parser) = update_displayed_attributes(client, "movies", ["title", "overview"])
 /// ```
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/update-displayed-attributes
 pub fn update_displayed_attributes(
   client: Client,
   index_uid: String,
@@ -397,6 +543,9 @@ pub fn update_displayed_attributes(
 /// ```gleam
 /// let #(request, parser) = reset_displayed_attributes(client, "movies")
 /// ```
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/reset-displayed-attributes
 pub fn reset_displayed_attributes(
   client: Client,
   index_uid: String,
@@ -425,6 +574,9 @@ pub fn reset_displayed_attributes(
 /// ```gleam
 /// let #(request, parser) = get_searchable_attributes(client, "movies")
 /// ```
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/get-searchable-attributes
 pub fn get_searchable_attributes(
   client: Client,
   index_uid: String,
@@ -469,6 +621,9 @@ pub fn get_searchable_attributes(
 /// ```gleam
 /// let #(request, parser) = update_searchable_attributes(client, "movies", ["title", "overview"])
 /// ```
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/update-searchable-attributes
 pub fn update_searchable_attributes(
   client: Client,
   index_uid: String,
@@ -503,6 +658,9 @@ pub fn update_searchable_attributes(
 /// ```gleam
 /// let #(request, parser) = reset_searchable_attributes(client, "movies")
 /// ```
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/reset-searchable-attributes
 pub fn reset_searchable_attributes(
   client: Client,
   index_uid: String,
@@ -531,6 +689,9 @@ pub fn reset_searchable_attributes(
 /// ```gleam
 /// let #(request, parser) = get_sortable_attributes(client, "movies")
 /// ```
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/get-sortable-attributes
 pub fn get_sortable_attributes(
   client: Client,
   index_uid: String,
@@ -574,6 +735,9 @@ pub fn get_sortable_attributes(
 /// ```gleam
 /// let #(request, parser) = update_sortable_attributes(client, "movies", ["release_date", "title"])
 /// ```
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/update-sortable-attributes
 pub fn update_sortable_attributes(
   client: Client,
   index_uid: String,
@@ -608,6 +772,9 @@ pub fn update_sortable_attributes(
 /// ```gleam
 /// let #(request, parser) = reset_sortable_attributes(client, "movies")
 /// ```
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/reset-sortable-attributes
 pub fn reset_sortable_attributes(
   client: Client,
   index_uid: String,
@@ -636,6 +803,9 @@ pub fn reset_sortable_attributes(
 /// ```gleam
 /// let #(request, parser) = get_non_separator_tokens(client, "movies")
 /// ```
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/get-non-separator-tokens
 pub fn get_non_separator_tokens(
   client: Client,
   index_uid: String,
@@ -680,6 +850,9 @@ pub fn get_non_separator_tokens(
 /// ```gleam
 /// let #(request, parser) = update_non_separator_tokens(client, "movies", ["@", "#"])
 /// ```
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/update-non-separator-tokens
 pub fn update_non_separator_tokens(
   client: Client,
   index_uid: String,
@@ -714,6 +887,9 @@ pub fn update_non_separator_tokens(
 /// ```gleam
 /// let #(request, parser) = reset_non_separator_tokens(client, "movies")
 /// ```
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/reset-non-separator-tokens
 pub fn reset_non_separator_tokens(
   client: Client,
   index_uid: String,
@@ -742,6 +918,9 @@ pub fn reset_non_separator_tokens(
 /// ```gleam
 /// let #(request, parser) = get_separator_tokens(client, "movies")
 /// ```
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/get-separator-tokens
 pub fn get_separator_tokens(
   client: Client,
   index_uid: String,
@@ -786,6 +965,9 @@ pub fn get_separator_tokens(
 /// ```gleam
 /// let #(request, parser) = update_separator_tokens(client, "movies", ["|", "/"])
 /// ```
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/update-separator-tokens
 pub fn update_separator_tokens(
   client: Client,
   index_uid: String,
@@ -820,6 +1002,9 @@ pub fn update_separator_tokens(
 /// ```gleam
 /// let #(request, parser) = reset_separator_tokens(client, "movies")
 /// ```
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/reset-separator-tokens
 pub fn reset_separator_tokens(
   client: Client,
   index_uid: String,
@@ -848,6 +1033,9 @@ pub fn reset_separator_tokens(
 /// ```gleam
 /// let #(request, parser) = get_stop_words(client, "movies")
 /// ```
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/get-stop-words
 pub fn get_stop_words(
   client: Client,
   index_uid: String,
@@ -891,6 +1079,9 @@ pub fn get_stop_words(
 /// ```gleam
 /// let #(request, parser) = update_stop_words(client, "movies", ["the", "a", "an"])
 /// ```
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/update-stop-words
 pub fn update_stop_words(
   client: Client,
   index_uid: String,
@@ -925,6 +1116,9 @@ pub fn update_stop_words(
 /// ```gleam
 /// let #(request, parser) = reset_stop_words(client, "movies")
 /// ```
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/reset-stop-words
 pub fn reset_stop_words(
   client: Client,
   index_uid: String,
@@ -953,6 +1147,9 @@ pub fn reset_stop_words(
 /// ```gleam
 /// let #(request, parser) = get_filterable_attributes(client, "movies")
 /// ```
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/get-filterable-attributes
 pub fn get_filterable_attributes(
   client: Client,
   index_uid: String,
@@ -997,6 +1194,9 @@ pub fn get_filterable_attributes(
 /// ```gleam
 /// let #(request, parser) = update_filterable_attributes(client, "movies", ["genre", "year"])
 /// ```
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/update-filterable-attributes
 pub fn update_filterable_attributes(
   client: Client,
   index_uid: String,
@@ -1031,6 +1231,9 @@ pub fn update_filterable_attributes(
 /// ```gleam
 /// let #(request, parser) = reset_filterable_attributes(client, "movies")
 /// ```
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/reset-filterable-attributes
 pub fn reset_filterable_attributes(
   client: Client,
   index_uid: String,
@@ -1127,6 +1330,9 @@ pub fn reset_ranking_rules(
 /// ```gleam
 /// let #(request, parser) = get_search_cutoff_ms(client, "movies")
 /// ```
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/get-search-cutoff-ms
 pub fn get_search_cutoff_ms(
   client: Client,
   index_uid: String,
@@ -1170,6 +1376,9 @@ pub fn get_search_cutoff_ms(
 /// ```gleam
 /// let #(request, parser) = update_search_cutoff_ms(client, "movies", 150)
 /// ```
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/update-search-cutoff-ms
 pub fn update_search_cutoff_ms(
   client: Client,
   index_uid: String,
@@ -1205,6 +1414,9 @@ pub fn update_search_cutoff_ms(
 /// ```gleam
 /// let #(request, parser) = reset_search_cutoff_ms(client, "movies")
 /// ```
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/reset-search-cutoff-ms
 pub fn reset_search_cutoff_ms(
   client: Client,
   index_uid: String,
@@ -1233,6 +1445,9 @@ pub fn reset_search_cutoff_ms(
 /// ```gleam
 /// let #(request, parser) = get_foreign_keys(client, "movies")
 /// ```
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/get-foreign-keys
 pub fn get_foreign_keys(
   client: Client,
   index_uid: String,
@@ -1277,6 +1492,9 @@ pub fn get_foreign_keys(
 /// ```gleam
 /// let #(request, parser) = update_foreign_keys(client, "movies", foreign_keys)
 /// ```
+///
+/// ## Reference
+/// https://www.meilisearch.com/docs/reference/api/settings/update-foreign-keys
 pub fn update_foreign_keys(
   client: Client,
   index_uid: String,
@@ -2305,11 +2523,12 @@ pub type Settings {
     typo_tolerance: TypoTolerance,
     faceting: Faceting,
     pagination: Pagination,
-    embedders: Embedder,
+    embedders: Dict(String, Embedder),
     search_cutoff_ms: option.Option(Int),
     localized_attribute: option.Option(List(LocalizedAttribute)),
     facet_search: Bool,
     prefix_search: option.Option(PrefixSearch),
+    chat: Chat,
   )
 }
 
@@ -2379,7 +2598,7 @@ pub type Embedder {
     source: EmbedderSource,
     model: String,
     revision: option.Option(String),
-    pooling: EmbedderPooling,
+    pooling: Option(EmbedderPooling),
     api_key: String,
     dimensions: Int,
     binary_quantisized: Bool,
@@ -2387,8 +2606,8 @@ pub type Embedder {
     document_template_max_bytes: Int,
     url: String,
     // TODO: for the following dicts Value in following dict is any
-    indexing_fragments: Dict(String, String),
-    search_fragments: Dict(String, String),
+    indexing_fragments: option.Option(Dict(String, String)),
+    search_fragments: option.Option(Dict(String, String)),
     request: Dict(String, String),
     response: Dict(String, String),
     // Not for this one
@@ -2396,7 +2615,6 @@ pub type Embedder {
     search_embedder: option.Option(Embedder),
     indexing_embedder: option.Option(Embedder),
     distribution: Distribution,
-    chat: Chat,
   )
 }
 
@@ -2418,7 +2636,7 @@ pub type EmbedderPooling {
 }
 
 pub type Distribution {
-  Distribution(current_mean: Float, current_sigma: Float)
+  Distribution(mean: Float, sigma: Float)
 }
 
 pub type Chat {
@@ -2515,7 +2733,7 @@ fn decode_settings() -> decode.Decoder(Settings) {
     decode.success(Pagination(max_total_hits:))
   })
 
-  use embedders <- decode.field("embedders", decode_embedder())
+  use embedders <- decode.field("embedders", decode_embedders())
   use search_cutoff_ms <- decode.field(
     "searchCutoffMs",
     decode.optional(decode.int),
@@ -2529,6 +2747,7 @@ fn decode_settings() -> decode.Decoder(Settings) {
     "prefixSearch",
     decode.optional(decode.string |> decode.map(prefix_search_from_string)),
   )
+  use chat <- decode.field("chat", decode_chat())
 
   decode.success(Settings(
     displayed_attributes:,
@@ -2552,6 +2771,7 @@ fn decode_settings() -> decode.Decoder(Settings) {
     localized_attribute:,
     facet_search:,
     prefix_search:,
+    chat:,
   ))
 }
 
@@ -2604,7 +2824,7 @@ fn settings_list_to_json(settings: Settings) -> String {
 
       #("faceting", faceting_to_json(settings.faceting)),
       #("pagination", pagination_to_json(settings.pagination)),
-      #("embedders", embedder_to_json(settings.embedders)),
+      #("embedders", embedders_to_json(settings.embedders)),
       #("searchCutoffMs", case settings.search_cutoff_ms {
         option.Some(search_cutoff_ms) -> json.int(search_cutoff_ms)
         option.None -> json.null()
@@ -2615,6 +2835,7 @@ fn settings_list_to_json(settings: Settings) -> String {
       }),
       #("facetSearch", json.bool(settings.facet_search)),
       #("prefixSearch", prefix_search_to_json(settings.prefix_search)),
+      #("chat", chat_to_json(settings.chat)),
     ])
 
   json.to_string(object)
@@ -2684,6 +2905,18 @@ fn localized_attribute_to_json(
   ])
 }
 
+fn embedders_from_json(
+  body: String,
+) -> Result(Dict(String, Embedder), json.DecodeError) {
+  json.parse(body, decode_embedders())
+}
+
+fn decode_embedders() -> decode.Decoder(Dict(String, Embedder)) {
+  use embedders <- decode.then(decode.dict(decode.string, decode_embedder()))
+
+  decode.success(embedders)
+}
+
 fn decode_embedder() -> decode.Decoder(Embedder) {
   use <- decode.recursive
   use source <- decode.field(
@@ -2694,7 +2927,7 @@ fn decode_embedder() -> decode.Decoder(Embedder) {
   use revision <- decode.field("revision", decode.optional(decode.string))
   use pooling <- decode.field(
     "pooling",
-    decode.string |> decode.map(decode_pooling),
+    decode.optional(decode.string |> decode.map(decode_pooling)),
   )
   use api_key <- decode.field("apiKey", decode.string)
   use dimensions <- decode.field("dimensions", decode.int)
@@ -2707,11 +2940,11 @@ fn decode_embedder() -> decode.Decoder(Embedder) {
   use url <- decode.field("url", decode.string)
   use indexing_fragments <- decode.field(
     "indexingFragments",
-    decode.dict(decode.string, decode.string),
+    decode.optional(decode.dict(decode.string, decode.string)),
   )
   use search_fragments <- decode.field(
     "searchFragments",
-    decode.dict(decode.string, decode.string),
+    decode.optional(decode.dict(decode.string, decode.string)),
   )
   use request <- decode.field(
     "request",
@@ -2734,11 +2967,10 @@ fn decode_embedder() -> decode.Decoder(Embedder) {
     decode.optional(decode_embedder()),
   )
   use distribution <- decode.field("distribution", {
-    use current_mean <- decode.field("currentMean", decode.float)
-    use current_sigma <- decode.field("currentSigma", decode.float)
-    decode.success(Distribution(current_mean:, current_sigma:))
+    use mean <- decode.field("mean", decode.float)
+    use sigma <- decode.field("sigma", decode.float)
+    decode.success(Distribution(mean:, sigma:))
   })
-  use chat <- decode.field("chat", decode_chat())
 
   decode.success(Embedder(
     source:,
@@ -2759,7 +2991,6 @@ fn decode_embedder() -> decode.Decoder(Embedder) {
     search_embedder:,
     indexing_embedder:,
     distribution:,
-    chat:,
   ))
 }
 
@@ -2784,15 +3015,14 @@ fn decode_source(value: String) -> EmbedderSource {
   }
 }
 
+fn embedders_to_json(embedders: Dict(String, Embedder)) -> json.Json {
+  json.dict(embedders, fn(k) { k }, fn(v) { embedder_to_json(v) })
+}
+
 fn embedder_to_json(embedder: Embedder) -> json.Json {
-  json.object([
+  let params = [
     #("source", embedder_source_to_json(embedder.source)),
     #("model", json.string(embedder.model)),
-    #("revision", case embedder.revision {
-      option.Some(revision) -> json.string(revision)
-      option.None -> json.null()
-    }),
-    #("pooling", pooling_to_json(embedder.pooling)),
     #("apiKey", json.string(embedder.api_key)),
     #("dimensions", json.int(embedder.dimensions)),
     #("binaryQuantized", json.bool(embedder.binary_quantisized)),
@@ -2802,39 +3032,87 @@ fn embedder_to_json(embedder: Embedder) -> json.Json {
       json.int(embedder.document_template_max_bytes),
     ),
     #("url", json.string(embedder.url)),
-    #(
-      "indexingFragments",
-      json.dict(embedder.indexing_fragments, fn(k) { k }, fn(v) {
-        json.string(v)
-      }),
-    ),
-    #(
-      "searchFragments",
-      json.dict(embedder.search_fragments, fn(k) { k }, fn(v) { json.string(v) }),
-    ),
-    #(
-      "request",
-      json.dict(embedder.request, fn(k) { k }, fn(v) { json.string(v) }),
-    ),
-    #(
-      "response",
-      json.dict(embedder.response, fn(k) { k }, fn(v) { json.string(v) }),
-    ),
-    #(
-      "headers",
-      json.dict(embedder.headers, fn(k) { k }, fn(v) { json.string(v) }),
-    ),
-    #("searchEmbedder", case embedder.search_embedder {
-      option.Some(embedder) -> embedder_to_json(embedder)
-      option.None -> json.null()
-    }),
-    #("indexingEmbedder", case embedder.indexing_embedder {
-      option.Some(embedder) -> embedder_to_json(embedder)
-      option.None -> json.null()
-    }),
     #("distribution", distribution_to_json(embedder.distribution)),
-    #("chat", chat_to_json(embedder.chat)),
-  ])
+  ]
+
+  let params = case embedder.revision {
+    option.Some(revision) -> [#("revision", json.string(revision)), ..params]
+    option.None -> params
+  }
+  let params = case embedder.pooling {
+    option.Some(pooling) -> [#("pooling", pooling_to_json(pooling)), ..params]
+    option.None -> params
+  }
+
+  let params = case embedder.indexing_fragments {
+    option.Some(indexing_fragments) -> [
+      #(
+        "indexingFragments",
+        json.dict(indexing_fragments, fn(k) { k }, fn(v) { json.string(v) }),
+      ),
+      ..params
+    ]
+    option.None -> params
+  }
+
+  let params = case embedder.search_fragments {
+    option.Some(search_fragments) -> [
+      #(
+        "searchFragments",
+        json.dict(search_fragments, fn(k) { k }, fn(v) { json.string(v) }),
+      ),
+      ..params
+    ]
+    option.None -> params
+  }
+
+  let params = case dict.is_empty(embedder.request) {
+    True -> params
+    False -> [
+      #(
+        "request",
+        json.dict(embedder.request, fn(k) { k }, fn(v) { json.string(v) }),
+      ),
+      ..params
+    ]
+  }
+  let params = case dict.is_empty(embedder.response) {
+    True -> params
+    False -> [
+      #(
+        "response",
+        json.dict(embedder.response, fn(k) { k }, fn(v) { json.string(v) }),
+      ),
+      ..params
+    ]
+  }
+
+  let params = case dict.is_empty(embedder.headers) {
+    True -> params
+    False -> [
+      #(
+        "headers",
+        json.dict(embedder.headers, fn(k) { k }, fn(v) { json.string(v) }),
+      ),
+      ..params
+    ]
+  }
+  let params = case embedder.search_embedder {
+    option.Some(search_embedder) -> [
+      #("search_embedder", embedder_to_json(search_embedder)),
+      ..params
+    ]
+    option.None -> params
+  }
+  let params = case embedder.indexing_embedder {
+    option.Some(indexing_embedder) -> [
+      #("indexing_embedder", embedder_to_json(indexing_embedder)),
+      ..params
+    ]
+    option.None -> params
+  }
+
+  json.object(params)
 }
 
 fn pooling_to_json(pooling: EmbedderPooling) -> json.Json {
@@ -2860,8 +3138,8 @@ fn embedder_source_to_json(source: EmbedderSource) -> json.Json {
 
 fn distribution_to_json(distribution: Distribution) -> json.Json {
   json.object([
-    #("currentMean", json.float(distribution.current_mean)),
-    #("currentSigma", json.float(distribution.current_sigma)),
+    #("mean", json.float(distribution.mean)),
+    #("sigma", json.float(distribution.sigma)),
   ])
 }
 

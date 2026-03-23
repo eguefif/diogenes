@@ -3729,8 +3729,8 @@ pub type Locales {
   UnexpectedLocal
 }
 
-pub fn locales_to_json(locale: Locales) -> json.Json {
-  let local_string = case locale {
+pub fn locale_to_string(locale: Locales) -> String {
+  case locale {
     Af -> "af"
     Ak -> "ak"
     Am -> "am"
@@ -3872,8 +3872,12 @@ pub fn locales_to_json(locale: Locales) -> json.Json {
     Cmn -> "cmn"
     UnexpectedLocal -> ""
   }
-  json.string(local_string)
 }
+
+pub fn locales_to_json(locale: Locales) -> json.Json {
+  json.string(locale_to_string(locale))
+}
+
 
 fn locales_from_string(value: String) -> Locales {
   case value {

@@ -42,6 +42,10 @@ pub type Error {
   UnexpectedHttpStatusCodeError(status: Int, body: String)
 }
 
+// TODO: Response should be specific to endpoint. There is no single type
+// Otherwise, we put them to far away from their module. Move task in the task module
+// When done.
+// Add specific document response too.
 pub type MeilisearchResponse(result_type) {
   Task(
     task_uid: Int,

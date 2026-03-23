@@ -2,8 +2,7 @@
 ////
 
 import diogenes.{
-  type Client, type Error, type MeilisearchResponse, TransportError,
-  UnexpectedHttpStatusCodeError,
+  type Client, type Error, TransportError, UnexpectedHttpStatusCodeError,
 }
 import gleam/http/request.{type Request}
 import gleam/http/response.{type Response, Response}
@@ -30,8 +29,8 @@ fn set_auth(req: Request(String), api_key: Option(String)) -> Request(String) {
 pub fn send_request(
   request: Request(String),
   api_error_status_codes: List(Int),
-  parser: fn(Int, String) -> Result(MeilisearchResponse(a), Error),
-) -> Result(MeilisearchResponse(a), Error) {
+  parser: fn(Int, String) -> Result(result, Error),
+) -> Result(result, Error) {
   case httpc.send(request) {
     Ok(response) -> {
       use body <- expect_success(response, api_error_status_codes)
